@@ -6,6 +6,7 @@ declare global {
       HOST: string;
       PORT: string;
       AXIOS_BASE_URL: string;
+      CORS_ORIGIN: string;
     }
   }
 }

@@ -8,7 +8,7 @@ import aceRouter from "./routes/stream-routes";
 import searchRouter from "./routes/search-routes";
 
 const app = express();
-app.use(cors({ origin: "http://localhost:4001" }));
+app.use(cors({ origin: process.env.CORS_ORIGIN }));
 app.use(json());
 app.use(cookieParser());
 

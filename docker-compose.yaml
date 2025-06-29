@@ -19,5 +19,18 @@ services:
     env_file:
       - .env
 
+  acelink-webui:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: ace-webui
+    ports:
+      - "4000:4000"
+    depends_on:
+      - acelink-middleware
+    restart: unless-stopped
+    env_file:
+      - .env
+
 networks:
   acestream:

@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { Spinner } from "./spinner";
+import CopyButton from "./copy-button";
 
 const AppSearch = () => {
   const [open, setOpen] = useState(false);
@@ -30,11 +31,6 @@ const AppSearch = () => {
       setIsLoading(true);
       debounceSearch(text);
     }
-  };
-  const copyLinkHandler = (link: string) => {
-    navigator.clipboard.writeText(link).then(() => {
-      setOpen(false);
-    });
   };
 
   useEffect(() => {
@@ -63,18 +59,20 @@ const AppSearch = () => {
             <Spinner className="mx-auto" />
           ) : (
             data?.map((channel) => (
-              <Button
+              <CopyButton
                 key={channel.infohash}
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() =>
-                  copyLinkHandler(generateVLCLink(channel.infohash))
-                }
+                data={generateVLCLink(channel.infohash)}
+                onCopied={() => setOpen(false)}
               >
-                {channel.name}
-              </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  {channel.name}
+                </Button>
+              </CopyButton>
             ))
           )}
         </div>

@@ -1,0 +1,21 @@
+services:
+  acelink:
+    image: blaiseio/acelink
+    container_name: acelink
+    ports:
+      - "6878:6878"
+    restart: unless-stopped
+
+  acelink-middleware:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ace-middleware
+    ports:
+      - "4000:4000"
+    depends_on:
+      - acelink
+    restart: unless-stopped
+
+networks:
+  acestream:

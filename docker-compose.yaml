@@ -16,6 +16,8 @@ services:
     depends_on:
       - acelink
     restart: unless-stopped
+    env_file:
+      - .env
 
 networks:
   acestream:

@@ -11,8 +11,11 @@ app.use(cors());
 app.use(json());
 app.use(cookieParser());
 
-app.use("/ace", aceRouter);
+app.use("/stream", aceRouter);
 
-app.listen(4000, "0.0.0.0", () => {
+const PORT = Number(process.env.PORT) || 4000;
+const HOST = process.env.HOST || "localhost";
+
+app.listen(PORT, HOST, () => {
   console.log("server is running");
 });

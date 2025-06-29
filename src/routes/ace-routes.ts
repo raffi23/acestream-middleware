@@ -3,8 +3,11 @@ import axios from "../lib/axios";
 
 const aceRouter = Router();
 
-const runStream = async (url: string, req: Request, res: Response) => {
-  const { data, headers } = await axios.get(url, {
+aceRouter.get("/http/:id", async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const consutructUrl = `/ace/getstream?id=${id}`;
+
+  const { data, headers } = await axios.get(consutructUrl, {
     responseType: "stream",
   });
 
@@ -18,12 +21,21 @@ const runStream = async (url: string, req: Request, res: Response) => {
   }
 
   data.pipe(res);
-};
+});
 
-aceRouter.get("/stream/:id", async (req, res) => {
+aceRouter.get("/hls/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
-  const consutructUrl = `/getstream?id=${id}`;
-  await runStream(consutructUrl, req, res);
+  const consutructUrl = `/ace/manifest.m3u8?id=${id}`;
+  const { data } = await axios.get(consutructUrl);
+  const playlist = (data as string).replaceAll(
+    process.env.ACESTREAM_URL || "http://localhost:6878",
+    process.env.REDIRECT_URL || "http://localhost:6878"
+  );
+
+  res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+  res.setHeader("Content-Disposition", `attachment; filename="${id}.m3u8"`);
+
+  res.status(200).send(playlist);
 });
 
 export default aceRouter;

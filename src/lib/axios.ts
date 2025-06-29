@@ -1,7 +1,7 @@
 import base from "axios";
 
 const axios = base.create({
-  baseURL: "http://acelink:6878/ace",
+  baseURL: process.env.AXIOS_BASE_URL,
 });
 
 export default axios;

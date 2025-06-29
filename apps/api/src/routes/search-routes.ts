@@ -30,29 +30,32 @@ searchRouter.get("/", async (req: Request, res: Response) => {
 });
 
 searchRouter.get("/all", async (req: Request, res: Response) => {
-  const { data } = await axiosBase.get(
+  const { data } = await axiosBase.get<Channel[]>(
     "https://search.acestream.net/all?api_version=1&api_key=test_api_key"
   );
 
-  res.status(200).send(
-    data.sort((a: Channel, b: Channel) => {
-      const channelA = firstValidCategory(a.categories);
-      const channelB = firstValidCategory(b.categories);
+  const grouped: Record<string, Channel[]> = {};
 
-      const aIs18 = is18Plus(a);
-      const bIs18 = is18Plus(b);
+  for (const channel of data) {
+    if (is18Plus(channel)) {
+      (grouped["18+"] ||= []).push(channel);
+      continue;
+    }
 
-      if (aIs18 && bIs18) return 0;
-      if (aIs18) return 1;
-      if (bIs18) return -1;
+    const category =
+      firstValidCategory(channel.categories)?.toLowerCase() || "uncategorized";
+    (grouped[category] ||= []).push(channel);
+  }
 
-      if (!channelA && !channelB) return 0;
-      if (!channelA) return 1;
-      if (!channelB) return -1;
-
-      return channelA.localeCompare(channelB);
+  const sortedGroups = Object.keys(grouped)
+    .sort((a, b) => {
+      if (a === "uncategorized" || a === "18+") return 1;
+      if (b === "uncategorized" || b === "18+") return -1;
+      return a.localeCompare(b);
     })
-  );
+    .map((cat) => ({ category: cat, channels: grouped[cat] }));
+
+  res.status(200).send(sortedGroups);
 });
 
 export default searchRouter;

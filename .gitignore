@@ -16,6 +16,9 @@ yarn-error.log*
 
 .env*
 
+# build
+/dist
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

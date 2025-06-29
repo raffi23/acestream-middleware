@@ -1,3 +1,3 @@
 export default function Home() {
-  return <p>Hello World</p>;
+  return <h1 className="text-2xl">Rhymecode AceStream Search</h1>;
 }

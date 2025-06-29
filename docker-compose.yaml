@@ -8,7 +8,7 @@ services:
 
   acelink-middleware:
     build:
-      context: .
+      context: ./apps/api
       dockerfile: Dockerfile
     container_name: ace-middleware
     ports:

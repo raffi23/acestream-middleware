@@ -1,5 +1,5 @@
 # dependencies
-/node_modules
+node_modules
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
@@ -17,7 +17,7 @@ yarn-error.log*
 .env*
 
 # build
-/dist
+dist
 
 # typescript
 *.tsbuildinfo

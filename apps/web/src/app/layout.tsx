@@ -2,8 +2,8 @@ import { getAllStreamGroups } from "@/lib/api";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AppSidebar from "./_components/app-sidebar";
-import "./globals.css";
 import QueryProvider from "./_components/query-provider";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

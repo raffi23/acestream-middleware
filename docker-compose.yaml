@@ -5,12 +5,21 @@ services:
     ports:
       - "6878:6878"
     restart: unless-stopped
+    networks:
+      - acestream-network
 
-  acelink-middleware:
+  acelink-api:
+    develop:
+      watch:
+        - path: ./apps/api/src
+          action: sync
+          target: /app/src
+        - path: ./apps/api/src
+          action: rebuild
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-    container_name: ace-middleware
+    container_name: acelink-api
     ports:
       - "4000:4000"
     depends_on:
@@ -18,6 +27,29 @@ services:
     restart: unless-stopped
     env_file:
       - ./apps/api/.env
+    networks:
+      - acestream-network
+
+  acelink-web:
+    develop:
+      watch:
+        - path: ./apps/web/src
+          action: sync
+          target: /app/src
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: acelink-web
+    ports:
+      - "4001:4001"
+    depends_on:
+      - acelink
+      - acelink-api
+    restart: unless-stopped
+    env_file:
+      - "./apps/web/.env"
+    networks:
+      - acestream-network
 
 networks:
-  acestream:
+  acestream-network:

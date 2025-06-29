@@ -8,7 +8,7 @@ import aceRouter from "./routes/stream-routes";
 import searchRouter from "./routes/search-routes";
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "http://localhost:4001" }));
 app.use(json());
 app.use(cookieParser());
 
@@ -19,5 +19,5 @@ const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.HOST || "localhost";
 
 app.listen(PORT, HOST, () => {
-  console.log("server is running");
+  console.log(`server is running on ${HOST}:${PORT}`);
 });

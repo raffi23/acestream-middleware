@@ -25,8 +25,9 @@ searchRouter.get("/", async (req: Request, res: Response) => {
   });
   const consutructUrl = `/server/api?${queryData}`;
   const { data } = await axios.get(consutructUrl);
-
-  res.status(200).send(data);
+  const result = (data.result?.results ?? []) as { items: Channel[] }[];
+  const formattedData = result.flatMap((item) => item.items);
+  res.status(200).send(formattedData);
 });
 
 searchRouter.get("/all", async (req: Request, res: Response) => {

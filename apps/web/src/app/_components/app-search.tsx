@@ -39,8 +39,6 @@ const AppSearch = () => {
 
   const selectedChannel = data.find((c) => c.infohash === value);
 
-  console.log(selectedChannel);
-
   const debounceSearch = useDebounce(mutate, 500);
   const changeHandler = (text: string) => {
     setSearchText(text);

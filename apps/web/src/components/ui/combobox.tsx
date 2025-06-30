@@ -52,7 +52,7 @@ export const Combobox: React.FC<Props> = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-        <Command value={value} onValueChange={onChange} shouldFilter={false}>
+        <Command value={value} shouldFilter={false}>
           <CommandInput
             value={searchText}
             onValueChange={onSearchTextChange}
@@ -74,7 +74,7 @@ export const Combobox: React.FC<Props> = ({
                     key={item.value}
                     value={item.value}
                     onSelect={(currentValue) => {
-                      onChange?.(currentValue === value ? "" : currentValue);
+                      onChange?.(currentValue);
                       setOpen(false);
                     }}
                   >

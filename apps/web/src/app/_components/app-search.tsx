@@ -39,6 +39,8 @@ const AppSearch = () => {
 
   const selectedChannel = data.find((c) => c.infohash === value);
 
+  console.log(selectedChannel);
+
   const debounceSearch = useDebounce(mutate, 500);
   const changeHandler = (text: string) => {
     setSearchText(text);
@@ -50,8 +52,8 @@ const AppSearch = () => {
     }
   };
   const copyLinkHandler = (infohash: string) => {
-    navigator.clipboard.writeText(generateVLCLink(infohash)).catch(console.log);
     setValue(infohash);
+    navigator.clipboard.writeText(generateVLCLink(infohash)).catch(console.log);
   };
 
   useEffect(() => {

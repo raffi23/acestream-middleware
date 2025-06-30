@@ -13,7 +13,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { generateVLCLink } from "@/lib/utils";
 import { StreamGroup } from "@/types";
 import { ChevronDownIcon } from "lucide-react";
 import { FC, PropsWithChildren } from "react";
@@ -42,10 +41,7 @@ const AppSidebar: FC<Props> = ({ streamGroups, children }) => {
                 <CollapsibleContent asChild>
                   <SidebarGroupContent>
                     {group.channels?.map((channel) => (
-                      <CopyButton
-                        key={channel.infohash}
-                        data={generateVLCLink(channel.infohash)}
-                      >
+                      <CopyButton key={channel.infohash} data={channel.name}>
                         <SidebarMenuButton>{channel.name}</SidebarMenuButton>
                       </CopyButton>
                     ))}

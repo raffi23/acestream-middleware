@@ -1,16 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { ChannelSearchItem } from "@/types";
-import { FC } from "react";
 import CopyButton from "./copy-button";
+import { FC } from "react";
+import { generateVLCLink } from "@/lib/utils";
 
 type Props = {
   channel: ChannelSearchItem;
   onCopied?: () => void;
 };
 
-const ChNameCopyButton: FC<Props> = ({ channel, onCopied }) => {
+const ChannelCopyButton: FC<Props> = ({ channel, onCopied }) => {
   return (
-    <CopyButton data={channel.name} onCopied={onCopied}>
+    <CopyButton data={generateVLCLink(channel.infohash)} onCopied={onCopied}>
       <Button
         type="button"
         variant="ghost"
@@ -23,4 +24,4 @@ const ChNameCopyButton: FC<Props> = ({ channel, onCopied }) => {
   );
 };
 
-export default ChNameCopyButton;
+export default ChannelCopyButton;

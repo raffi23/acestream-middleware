@@ -1,7 +1,7 @@
 import { PropsWithParams } from "@/types";
 import AppSearch from "./_components/app-search";
 import { queryStream } from "@/lib/api";
-import ChNameCopyButton from "./_components/channel-button";
+import ChannelCopyButton from "./_components/channel-button";
 
 export default async function Home({ searchParams }: PropsWithParams) {
   const { query } = await searchParams;
@@ -14,7 +14,7 @@ export default async function Home({ searchParams }: PropsWithParams) {
       {data.length > 0 && (
         <div className="p-2 flex flex-col gap-2">
           {data.map((channel) => (
-            <ChNameCopyButton key={channel.infohash} channel={channel} />
+            <ChannelCopyButton key={channel.infohash} channel={channel} />
           ))}
         </div>
       )}

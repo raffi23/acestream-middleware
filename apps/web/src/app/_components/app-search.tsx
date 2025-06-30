@@ -13,23 +13,31 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const AppSearch = () => {
+  const [value, setValue] = useState("");
   const searchParams = useSearchParams();
   const [searchText, setSearchText] = useState(searchParams.get("query") ?? "");
   const accessToken = useStore((state) => state.access_token);
   const setAccessToken = useStore((state) => state.setAccessToken);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { data, mutate, isPending, reset } = useMutation({
+  const {
+    data = [],
+    mutate,
+    isPending,
+    reset,
+  } = useMutation({
     mutationFn: queryStream,
   });
-  const formattedData = useMemo(() => {
-    return !data
-      ? []
-      : data.map((channel) => ({
-          label: channel.name,
-          value: channel.infohash,
-        }));
-  }, [data]);
+  const formattedData = useMemo(
+    () =>
+      data.map((channel) => ({
+        label: channel.name,
+        value: channel.infohash,
+      })),
+    [data]
+  );
+
+  const selectedChannel = data.find((c) => c.infohash === value);
 
   const debounceSearch = useDebounce(mutate, 500);
   const changeHandler = (text: string) => {
@@ -41,8 +49,9 @@ const AppSearch = () => {
       debounceSearch(text);
     }
   };
-  const copyLinkHandler = (data: string) => {
-    navigator.clipboard.writeText(generateVLCLink(data)).catch(console.log);
+  const copyLinkHandler = (infohash: string) => {
+    navigator.clipboard.writeText(generateVLCLink(infohash)).catch(console.log);
+    setValue(infohash);
   };
 
   useEffect(() => {
@@ -60,6 +69,7 @@ const AppSearch = () => {
       <div className="flex gap-4">
         <Combobox
           data={formattedData}
+          value={value}
           isLoading={isLoading}
           onChange={copyLinkHandler}
           searchText={searchText}
@@ -68,6 +78,18 @@ const AppSearch = () => {
         <Button asChild>
           <Link href={`/?query=${searchText}`}>Search</Link>
         </Button>
+
+        {selectedChannel && (
+          <Button asChild>
+            <Link
+              href={`vlc-x-callback://x-callback-url/stream?url=${generateVLCLink(
+                selectedChannel.infohash
+              )}`}
+            >
+              Open in VLC
+            </Link>
+          </Button>
+        )}
       </div>
     </div>
   );

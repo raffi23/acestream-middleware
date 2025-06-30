@@ -5,6 +5,11 @@ const axios = base.create({
   withCredentials: true,
 });
 
+const server = base.create({
+  baseURL: "http://acelink-api:4000",
+});
+
+export { server as axiosServer };
 export { base as axiosBase };
 
 export default axios;

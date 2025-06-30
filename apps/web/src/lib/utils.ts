@@ -1,3 +1,4 @@
+import { useStore } from "@/store";
 import { Channel } from "@/types";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -8,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function generateVLCLink(infohash: string) {
   const query = new URLSearchParams({
-    p_token: process.env.NEXT_PUBLIC_ACCESS_TOKEN_COMBINED ?? "",
+    p_token: useStore.getState().access_token ?? "",
   });
   return `${process.env.NEXT_PUBLIC_BE_URL}/stream/http/${infohash}?${query}`;
 }

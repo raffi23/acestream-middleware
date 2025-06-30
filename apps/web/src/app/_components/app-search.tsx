@@ -1,26 +1,35 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import useDebounce from "@/hooks/useDebounce";
 import { queryStream } from "@/lib/api";
 import { generateVLCLink } from "@/lib/utils";
+import { useStore } from "@/store";
 import { useMutation } from "@tanstack/react-query";
-import clsx from "clsx";
-import { useEffect, useState } from "react";
-import { Spinner } from "./spinner";
-import CopyButton from "./copy-button";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 const AppSearch = () => {
-  const [open, setOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
+  const searchParams = useSearchParams();
+  const [searchText, setSearchText] = useState(searchParams.get("query") ?? "");
+  const accessToken = useStore((state) => state.access_token);
+  const setAccessToken = useStore((state) => state.setAccessToken);
   const [isLoading, setIsLoading] = useState(false);
 
   const { data, mutate, isPending, reset } = useMutation({
     mutationFn: queryStream,
   });
-
-  const hasData = (data?.length ?? 0) > 0;
+  const formattedData = useMemo(() => {
+    return !data
+      ? []
+      : data.map((channel) => ({
+          label: channel.name,
+          value: channel.infohash,
+        }));
+  }, [data]);
 
   const debounceSearch = useDebounce(mutate, 500);
   const changeHandler = (text: string) => {
@@ -32,51 +41,34 @@ const AppSearch = () => {
       debounceSearch(text);
     }
   };
+  const copyLinkHandler = (data: string) => {
+    navigator.clipboard.writeText(generateVLCLink(data)).catch(console.log);
+  };
 
   useEffect(() => {
     if (!isPending) setIsLoading(false);
   }, [isPending]);
 
   return (
-    <div className="w-full relative">
+    <div className="flex flex-col gap-4">
       <Input
-        placeholder="search channels"
-        className="bg-teal-50"
-        value={searchText}
-        onFocus={() => setOpen(true)}
-        // onBlur={() => setOpen(false)}
-        onChange={(e) => changeHandler(e.target.value)}
+        placeholder="enter pangolin access token"
+        value={accessToken}
+        onChange={(e) => setAccessToken(e.target.value)}
       />
 
-      {(isLoading || (hasData && open)) && (
-        <div
-          className={clsx(
-            "flex flex-col gap-2 absolute top-[calc(100%_+_0.5rem)] rounded-md left-0 right-0 bg-sidebar border p-2",
-            isPending ? "items-center" : "items-start"
-          )}
-        >
-          {isLoading ? (
-            <Spinner className="mx-auto" />
-          ) : (
-            data?.map((channel) => (
-              <CopyButton
-                key={channel.infohash}
-                data={generateVLCLink(channel.infohash)}
-                onCopied={() => setOpen(false)}
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                >
-                  {channel.name}
-                </Button>
-              </CopyButton>
-            ))
-          )}
-        </div>
-      )}
+      <div className="flex gap-4">
+        <Combobox
+          data={formattedData}
+          isLoading={isLoading}
+          onChange={copyLinkHandler}
+          searchText={searchText}
+          onSearchTextChange={changeHandler}
+        />
+        <Button asChild>
+          <Link href={`/?query=${searchText}`}>Search</Link>
+        </Button>
+      </div>
     </div>
   );
 };

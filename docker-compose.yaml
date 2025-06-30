@@ -6,16 +6,9 @@ services:
       - "6878:6878"
     restart: unless-stopped
     networks:
-      - acestream-network
+      - network
 
   acelink-api:
-    develop:
-      watch:
-        - path: ./apps/api/src
-          action: sync
-          target: /app/src
-        - path: ./apps/api/src
-          action: rebuild
     build:
       context: ./apps/api
       dockerfile: Dockerfile
@@ -28,14 +21,9 @@ services:
     env_file:
       - ./apps/api/.env
     networks:
-      - acestream-network
+      - network
 
   acelink-web:
-    develop:
-      watch:
-        - path: ./apps/web/src
-          action: sync
-          target: /app/src
     build:
       context: ./apps/web
       dockerfile: Dockerfile
@@ -49,7 +37,7 @@ services:
     env_file:
       - "./apps/web/.env"
     networks:
-      - acestream-network
+      - network
 
 networks:
-  acestream-network:
+  network:

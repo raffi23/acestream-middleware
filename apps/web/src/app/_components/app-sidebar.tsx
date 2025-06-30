@@ -17,7 +17,6 @@ import { generateVLCLink } from "@/lib/utils";
 import { StreamGroup } from "@/types";
 import { ChevronDownIcon } from "lucide-react";
 import { FC, PropsWithChildren } from "react";
-import AppSearch from "./app-search";
 import CopyButton from "./copy-button";
 
 interface Props extends PropsWithChildren {
@@ -61,10 +60,9 @@ const AppSidebar: FC<Props> = ({ streamGroups, children }) => {
       <main className="w-full">
         <header className="border-b bg-sidebar flex items-center gap-6 p-3">
           <SidebarTrigger />
-          <AppSearch />
         </header>
 
-        <div className="p-4">{children}</div>
+        <div className="p-4 min-h-[calc(100vh_-_3.3125rem)]">{children}</div>
       </main>
     </SidebarProvider>
   );

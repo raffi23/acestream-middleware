@@ -1,10 +1,10 @@
-import { Channel, StreamGroup } from "@/types";
-import axios, { axiosBase } from "./axios";
+import { Channel, ChannelSearchItem, StreamGroup } from "@/types";
+import axios, { axiosBase, axiosServer } from "./axios";
 import { firstValidCategory, is18Plus } from "./utils";
 
-export const queryStream = async (query: string) => {
-  return axios
-    .get<Channel[]>(`/search?${new URLSearchParams({ query })}`)
+export const queryStream = async (query: string, server?: boolean) => {
+  return (server ? axiosServer : axios)
+    .get<ChannelSearchItem[]>(`/search?${new URLSearchParams({ query })}`)
     .then((res) => res.data);
 };
 

@@ -9,7 +9,7 @@ import searchRouter from "./routes/search-routes";
 import { error_middleware } from "./middleware/error-middleware";
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
 app.use(json());
 app.use(cookieParser());
 

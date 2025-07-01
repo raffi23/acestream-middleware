@@ -5,7 +5,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import useDebounce from "@/hooks/useDebounce";
 import { queryStream } from "@/lib/api";
-import { generateVLCLink } from "@/lib/utils";
+import { cn, generateVLCLink } from "@/lib/utils";
 import { useStore } from "@/store";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
@@ -66,7 +66,7 @@ const AppSearch = () => {
         onChange={(e) => setAccessToken(e.target.value)}
       />
 
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-4">
         <Combobox
           data={formattedData}
           value={value}
@@ -75,21 +75,29 @@ const AppSearch = () => {
           searchText={searchText}
           onSearchTextChange={changeHandler}
         />
-        <Button asChild>
-          <Link href={`/?query=${searchText}`}>Search</Link>
-        </Button>
 
-        {selectedChannel && (
+        <div
+          className={cn(
+            "grid gap-4",
+            selectedChannel ? "grid-cols-2" : "grid-cols-1"
+          )}
+        >
           <Button asChild>
-            <Link
-              href={`vlc-x-callback://x-callback-url/stream?url=${generateVLCLink(
-                selectedChannel.infohash
-              )}`}
-            >
-              Open in VLC
-            </Link>
+            <Link href={`/?query=${searchText}`}>Search</Link>
           </Button>
-        )}
+
+          {selectedChannel && (
+            <Button asChild>
+              <Link
+                href={`vlc-x-callback://x-callback-url/stream?url=${generateVLCLink(
+                  selectedChannel.infohash
+                )}`}
+              >
+                Open in VLC
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

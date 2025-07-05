@@ -1,7 +1,9 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { ChannelSearchItem } from "@/types";
 import CopyButton from "./copy-button";
-import { FC } from "react";
+import { FC, useEffect, useState } from "react";
 import { generateVLCLink } from "@/lib/utils";
 
 type Props = {
@@ -10,8 +12,14 @@ type Props = {
 };
 
 const ChannelCopyButton: FC<Props> = ({ channel, onCopied }) => {
+  const [link, setLink] = useState("");
+
+  useEffect(() => {
+    setLink(generateVLCLink(channel.infohash));
+  }, [channel.infohash]);
+
   return (
-    <CopyButton data={generateVLCLink(channel.infohash)} onCopied={onCopied}>
+    <CopyButton data={link} onCopied={onCopied}>
       <Button
         type="button"
         variant="ghost"

@@ -13,7 +13,6 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-      # dockerfile: Dockerfile.dev
     container_name: acelink-api
     ports:
       - "4000:4000"
@@ -24,14 +23,11 @@ services:
       - ./apps/api/.env
     networks:
       - acestream
-    # volumes:
-    #   - ./apps/api/src:/app/src
 
   acelink-web:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
-      # dockerfile: Dockerfile.dev
     container_name: acelink-web
     ports:
       - "4001:4001"
@@ -43,8 +39,6 @@ services:
       - "./apps/web/.env"
     networks:
       - acestream
-    # volumes:
-    #   - ./apps/web/src:/app/src
 
 networks:
   acestream:

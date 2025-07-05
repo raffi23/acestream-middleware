@@ -12,9 +12,11 @@ RUN yarn
 
 COPY . .
 
+RUN npx tsc
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs-user
 
 USER nodejs-user
 
-CMD ["yarn", "start"] 
+CMD ["node", "./dist/src/index.js"] 

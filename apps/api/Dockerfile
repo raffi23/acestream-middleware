@@ -12,6 +12,9 @@ RUN yarn
 
 COPY . .
 
-EXPOSE 4000
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs-user
+
+USER nodejs-user
 
 CMD ["yarn", "start"] 

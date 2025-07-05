@@ -10,6 +10,7 @@ export const axiosAPI = base.create({
 
 export const axiosClient = base.create({
   baseURL: process.env.NEXT_PUBLIC_BE_URL,
+  withCredentials: true,
 });
 
 export { base as axiosBase };

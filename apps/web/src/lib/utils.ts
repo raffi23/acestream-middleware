@@ -13,7 +13,7 @@ export function generateVLCLink(infohash: string) {
     ...(p_token && { p_token }),
   });
   const hasKeys = query.size > 0;
-  return `http://localhost:4000/stream/${infohash}${
+  return `${process.env.NEXT_PUBLIC_BE_URL}/stream/${infohash}${
     hasKeys ? "?" : ""
   }${query}`;
 }

@@ -9,7 +9,7 @@ export const axiosAPI = base.create({
 });
 
 export const axiosClient = base.create({
-  baseURL: "http://localhost:4000",
+  baseURL: process.env.NEXT_PUBLIC_BE_URL,
 });
 
 export { base as axiosBase };

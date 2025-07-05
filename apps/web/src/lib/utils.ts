@@ -8,10 +8,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function generateVLCLink(infohash: string) {
+  const p_token = useStore.getState().access_token;
   const query = new URLSearchParams({
-    p_token: useStore.getState().access_token ?? "",
+    ...(p_token && { p_token }),
   });
-  return `${process.env.NEXT_PUBLIC_BE_URL}/stream/http/${infohash}?${query}`;
+  const hasKeys = query.size > 0;
+  return `http://localhost:4000/stream/${infohash}${
+    hasKeys ? "?" : ""
+  }${query}`;
 }
 
 export const is18Plus = (channel: Channel) => {

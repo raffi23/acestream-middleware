@@ -1,15 +1,15 @@
 import base from "axios";
 
-const axios = base.create({
-  baseURL: process.env.NEXT_PUBLIC_BE_URL,
-  withCredentials: true,
+export const axiosAcelink = base.create({
+  baseURL: "http://acelink:6878",
 });
 
-const server = base.create({
+export const axiosAPI = base.create({
   baseURL: "http://acelink-api:4000",
 });
 
-export { server as axiosServer };
-export { base as axiosBase };
+export const axiosClient = base.create({
+  baseURL: "http://localhost:4000",
+});
 
-export default axios;
+export { base as axiosBase };

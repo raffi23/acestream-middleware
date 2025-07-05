@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import useDebounce from "@/hooks/useDebounce";
-import { queryStream } from "@/lib/api";
+import { queryStreamClient } from "@/lib/api";
 import { cn, generateVLCLink } from "@/lib/utils";
 import { useStore } from "@/store";
 import { useMutation } from "@tanstack/react-query";
@@ -26,7 +26,7 @@ const AppSearch = () => {
     isPending,
     reset,
   } = useMutation({
-    mutationFn: queryStream,
+    mutationFn: queryStreamClient,
   });
   const formattedData = useMemo(
     () =>

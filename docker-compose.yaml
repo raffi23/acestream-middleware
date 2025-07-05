@@ -1,17 +1,19 @@
 services:
   acelink:
-    image: blaiseio/acelink
+    image: wafy80/acestream
     container_name: acelink
     ports:
       - "6878:6878"
+      - "8621:8621"
     restart: unless-stopped
     networks:
-      - network
+      - acestream
 
   acelink-api:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+      # dockerfile: Dockerfile.dev
     container_name: acelink-api
     ports:
       - "4000:4000"
@@ -21,12 +23,15 @@ services:
     env_file:
       - ./apps/api/.env
     networks:
-      - network
+      - acestream
+    # volumes:
+    #   - ./apps/api/src:/app/src
 
   acelink-web:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
+      # dockerfile: Dockerfile.dev
     container_name: acelink-web
     ports:
       - "4001:4001"
@@ -37,7 +42,9 @@ services:
     env_file:
       - "./apps/web/.env"
     networks:
-      - network
+      - acestream
+    # volumes:
+    #   - ./apps/web/src:/app/src
 
 networks:
-  network:
+  acestream:

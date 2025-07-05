@@ -5,7 +5,7 @@ import ChannelCopyButton from "./_components/channel-button";
 
 export default async function Home({ searchParams }: PropsWithParams) {
   const { query } = await searchParams;
-  const data = query ? await queryStream(query, true).catch(() => []) : [];
+  const data = query ? await queryStream(query).catch(() => []) : [];
 
   return (
     <div className="max-w-lg mx-auto mt-[calc(30vh_-_3.3125rem)] bg-sidebar rounded-lg p-4">

@@ -7,9 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function generateVLCLink(infohash: string) {
   const query = new URLSearchParams({
+    id: infohash || "",
     p_token: process.env.PANGOLIN_TOKEN || "",
   });
-  return `${process.env.NEXT_PUBLIC_BACKEND_URL}/stream/${infohash}?${query}`;
+  return `${process.env.NEXT_PUBLIC_BACKEND_URL}/ace/getstream?${query}`;
 }
 
 export const isShallowEqual = (

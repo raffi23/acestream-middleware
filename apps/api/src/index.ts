@@ -1,6 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { json } from "express";
@@ -9,18 +6,20 @@ import searchRouter from "./routes/search-routes";
 import { error_middleware } from "./middleware/error-middleware";
 
 const app = express();
-app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+app.use(cors());
 app.use(json());
 app.use(cookieParser());
 
-app.use("/stream", aceRouter);
+app.use("/ace", aceRouter);
 app.use("/search", searchRouter);
 
 app.use(error_middleware);
 
-const PORT = Number(process.env.PORT) || 4000;
-const HOST = process.env.HOST || "localhost";
+const PORT = process.env.PORT ? Number(process.env.PORT) : 6877;
+const HOST = process.env.HOST || "0.0.0.0";
+
+console.log(`Server is running on http://${HOST}:${PORT}`);
 
 app.listen(PORT, HOST, () => {
-  console.log(`server is running on ${HOST}:${PORT}`);
+  console.log(`server is running`);
 });

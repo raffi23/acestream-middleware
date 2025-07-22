@@ -5,7 +5,7 @@ declare global {
     interface ProcessEnv {
       HOST: string;
       PORT: string;
-      AXIOS_BASE_URL: string;
+      ACE_URL: string;
       CORS_ORIGIN: string;
     }
   }

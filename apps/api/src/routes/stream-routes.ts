@@ -3,8 +3,8 @@ import axios from "../lib/axios";
 
 const aceRouter = Router();
 
-aceRouter.get("/:id", async (req: Request, res: Response) => {
-  const id = req.params.id;
+aceRouter.get("/getstream", async (req: Request, res: Response) => {
+  const id = req.query.id;
   const consutructUrl = `/ace/getstream?id=${id}`;
 
   const { data, headers } = await axios.get(consutructUrl, {

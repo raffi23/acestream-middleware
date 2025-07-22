@@ -1,5 +1,3 @@
-import { useStore } from "@/store";
-import { Channel } from "@/types";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -8,23 +6,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function generateVLCLink(infohash: string) {
-  const p_token = useStore.getState().access_token;
   const query = new URLSearchParams({
-    p_token,
+    p_token: process.env.PANGOLIN_TOKEN || "",
   });
   return `${process.env.NEXT_PUBLIC_BE_URL}/stream/${infohash}?${query}`;
 }
 
-export const is18Plus = (channel: Channel) => {
-  return (
-    (channel.name && channel.name.includes("18+")) ||
-    (channel.categories &&
-      (channel.categories.includes("18+") ||
-        channel.categories.includes("erotic_18_plus")))
-  );
-};
-
-export const firstValidCategory = (categories: string[]) => {
-  if (!categories || categories.length === 0) return null;
-  return categories.find((cat) => cat && cat.trim() !== "") || null;
+export const isShallowEqual = (
+  // eslint-disable-next-line
+  a: Record<string, any>,
+  // eslint-disable-next-line
+  b: Record<string, any>
+) => {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((key) => a[key] === b[key]);
 };

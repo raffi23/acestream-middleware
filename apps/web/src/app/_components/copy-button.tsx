@@ -2,6 +2,7 @@
 
 import { Slot } from "@radix-ui/react-slot";
 import { FC, PropsWithChildren } from "react";
+import { toast } from "sonner";
 
 interface Props extends PropsWithChildren {
   data: string;
@@ -12,6 +13,7 @@ const CopyButton: FC<Props> = ({ data, children, onCopied }) => {
   const copyLinkHandler = () => {
     navigator.clipboard.writeText(data).then(() => {
       onCopied?.();
+      toast.success("Link copied to clipboard");
     });
   };
 

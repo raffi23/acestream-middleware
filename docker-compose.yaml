@@ -23,5 +23,20 @@ services:
       - PORT=6877
       - ACE_URL=http://acestream:6878
 
+  acestream-web:
+    image: acestream-web
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: acestream-web
+    ports:
+      - "6866:6866"
+    depends_on:
+      - acestream
+      - acestream-api
+    restart: unless-stopped
+    env_file:
+      - ./apps/web/.env
+
 networks:
   default:

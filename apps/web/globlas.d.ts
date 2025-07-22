@@ -4,7 +4,8 @@ declare global {
   namespace NodeJS {
     interface ProcessEnv {
       PANGOLIN_TOKEN: string;
-      NEXT_PUBLIC_BE_URL: string;
+      BACKEND_URL: string;
+      NEXT_PUBLIC_BACKEND_URL: string;
     }
   }
 }

@@ -9,7 +9,7 @@ export function generateVLCLink(infohash: string) {
   const query = new URLSearchParams({
     p_token: process.env.PANGOLIN_TOKEN || "",
   });
-  return `${process.env.NEXT_PUBLIC_BE_URL}/stream/${infohash}?${query}`;
+  return `${process.env.NEXT_PUBLIC_BACKEND_URL}/stream/${infohash}?${query}`;
 }
 
 export const isShallowEqual = (

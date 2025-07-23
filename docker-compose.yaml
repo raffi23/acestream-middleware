@@ -30,7 +30,7 @@ services:
       dockerfile: Dockerfile
     container_name: acestream-web
     ports:
-      - "6866:6866"
+      - "6876:6876"
     depends_on:
       - acestream
       - acestream-api

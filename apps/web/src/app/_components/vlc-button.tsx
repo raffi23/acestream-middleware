@@ -7,8 +7,8 @@ type Props = {
   infohash: string;
 };
 const VLCButton: FC<Props> = ({ infohash }) => {
-  const link = `vlc-x-callback://x-callback-url/stream?url=${generateVLCLink(
-    infohash
+  const link = `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(
+    generateVLCLink(infohash)
   )}`;
 
   return (

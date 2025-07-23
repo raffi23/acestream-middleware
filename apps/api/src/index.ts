@@ -18,8 +18,6 @@ app.use(error_middleware);
 const PORT = process.env.PORT ? Number(process.env.PORT) : 6877;
 const HOST = process.env.HOST || "0.0.0.0";
 
-console.log(`Server is running on http://${HOST}:${PORT}`);
-
 app.listen(PORT, HOST, () => {
-  console.log(`server is running`);
+  console.log(`Server is running on http://${HOST}:${PORT}`);
 });

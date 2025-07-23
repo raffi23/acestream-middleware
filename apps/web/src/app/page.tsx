@@ -1,8 +1,9 @@
+import ChannelItem from "@/components/channel-item";
 import { queryStream } from "@/lib/api";
 import { PropsWithParams } from "@/types";
 import AppSearch from "./_components/app-search";
-import ChannelCopyButton from "./_components/channel-button";
-import VLCButton from "./_components/vlc-button";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default async function Home({ searchParams }: PropsWithParams) {
   const { query } = await searchParams;
@@ -15,26 +16,22 @@ export default async function Home({ searchParams }: PropsWithParams) {
     : [];
 
   return (
-    <div className="max-w-lg mx-auto mt-[calc(30vh_-_3.3125rem)] bg-sidebar rounded-lg p-4">
+    <div className="flex flex-col gap-4">
       <AppSearch />
 
       {data.length > 0 && (
         <div className="p-2 flex flex-col gap-2">
           {data.map((channel) => (
-            <div
-              key={channel.infohash}
-              className="flex items-center justify-between gap-4"
-            >
-              <p>{channel.name}</p>
-
-              <div className="flex items-center gap-2">
-                <ChannelCopyButton channel={channel} />
-                <VLCButton infohash={channel.infohash} />
-              </div>
-            </div>
+            <ChannelItem key={channel.infohash} channel={channel} />
           ))}
         </div>
       )}
+
+      <div className="flex justify-center items-center gap-4">
+        <Button asChild variant="link">
+          <Link href="/generate">Generate a link instead</Link>
+        </Button>
+      </div>
     </div>
   );
 }

@@ -18,7 +18,10 @@ const GenerateRedirectButton = () => {
       />
 
       <Button asChild>
-        <Link href={`/generate/${input}`} className="w-full">
+        <Link
+          href={`/generate/${input.replace("acestream://", "")}`}
+          className="w-full"
+        >
           Generate Link
         </Link>
       </Button>

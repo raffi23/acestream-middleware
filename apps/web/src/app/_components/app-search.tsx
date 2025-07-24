@@ -9,13 +9,23 @@ type QueryFilters = {
 };
 
 const AppSearch: FC = () => {
-  const { filter, setFilter } = useQueryFilter<QueryFilters>({ query: "" });
+  const {
+    filter: { query },
+    setFilter,
+  } = useQueryFilter<QueryFilters>({ query: "" });
 
   return (
     <Input
       placeholder="Search channels..."
-      value={filter.query}
-      onChange={(e) => setFilter({ query: e.target.value })}
+      value={query}
+      onChange={(e) =>
+        setFilter({
+          query: {
+            value: e.target.value,
+            canUpdate: e.target.value.length > 2,
+          },
+        })
+      }
     />
   );
 };

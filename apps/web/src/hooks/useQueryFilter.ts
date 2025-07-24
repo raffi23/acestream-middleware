@@ -1,31 +1,29 @@
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-
-import { isShallowEqual } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import useDebounce from "./useDebounce";
+import { isShallowEqual } from "@/lib/utils";
 
 export type QueryParam = Record<string, string | undefined>;
 
 const getQuery = <T extends QueryParam>(state: T) => {
-  const query = new URLSearchParams(
-    Object.entries(state).reduce<Record<string, string>>(
-      (acc, [key, value]) => {
-        if (value === "" || value === undefined) return acc;
-        acc[key] = value;
-        return acc;
-      },
-      {}
-    )
+  const searchParams = new URLSearchParams(window.location.search);
+  const updatedParams = new URLSearchParams(searchParams.toString());
+
+  Object.entries(state).forEach(([key, value]) => {
+    if (value === "" || value === undefined) {
+      updatedParams.delete(key);
+    } else {
+      updatedParams.set(key, value);
+    }
+  });
+
+  const equal = isShallowEqual(
+    Object.fromEntries(searchParams.entries()),
+    Object.fromEntries(updatedParams.entries())
   );
-  return query;
+
+  return { query: updatedParams, hasChanged: !equal };
 };
 
 export function useQueryFilter<T extends QueryParam>(
@@ -33,53 +31,57 @@ export function useQueryFilter<T extends QueryParam>(
   debounceMs?: number
 ) {
   const defaultValuesRef = useRef<T>(defaultValues);
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const [isTransitioning, startTransition] = useTransition();
   const [state, setState] = useState<T>(() => defaultValuesRef.current);
-  const adjustedState = useMemo(() => {
-    let updated = [];
-    const changed = !isShallowEqual(defaultValuesRef.current, state);
-    if (!changed) {
-      updated = [
-        ...Object.entries(defaultValuesRef.current),
-        ...Object.entries(state),
-        ...searchParams.entries(),
-      ];
-    } else {
-      updated = [
-        ...Object.entries(defaultValuesRef.current),
-        ...searchParams.entries(),
-        ...Object.entries(state),
-      ];
-    }
-    return Object.fromEntries(
-      updated.filter(([_, value]) => value !== null && value !== undefined)
-    ) as T;
-  }, [searchParams, state]);
+  const [isTransitioning, startTransition] = useTransition();
 
   const debouncedPushQuery = useDebounce((updated: T) => {
-    const query = getQuery(updated);
+    const { query, hasChanged } = getQuery(updated);
+    if (!hasChanged) return;
+
     startTransition(() => {
-      router.replace(`?${query}`, { scroll: false });
+      router.push(`?${query}`, { scroll: false });
     });
   }, debounceMs ?? 300);
 
   const setFilter = useCallback(
-    (data: Partial<T>, stateOnly?: boolean) => {
+    (
+      data: Partial<
+        Record<
+          keyof T,
+          | undefined
+          | string
+          | {
+              value: string;
+              canUpdate: boolean;
+            }
+        >
+      >
+    ) => {
+      const allData: Record<string, string> = {};
+      const validatedData: Record<string, string> = {};
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (typeof value === "string") {
+          allData[key] = value;
+          validatedData[key] = value;
+        } else if (value) {
+          allData[key] = value.value;
+          validatedData[key] = value.canUpdate ? value.value : "";
+        }
+      });
+
       setState((prev) => {
-        const updated = { ...prev, ...data };
-        if (!stateOnly) debouncedPushQuery(updated);
-        return updated;
+        debouncedPushQuery({ ...prev, ...validatedData });
+        return { ...prev, ...allData };
       });
     },
     [debouncedPushQuery]
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    setFilter({ ...defaultValuesRef.current, ...Object.fromEntries(params) });
+    setFilter(defaultValuesRef.current);
   }, [setFilter]);
 
-  return { filter: adjustedState, setFilter, isTransitioning };
+  return { filter: state, setFilter, isTransitioning };
 }

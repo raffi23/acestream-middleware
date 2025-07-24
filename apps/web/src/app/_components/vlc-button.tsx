@@ -5,10 +5,11 @@ import { FC } from "react";
 
 type Props = {
   infohash: string;
+  isLocal: boolean;
 };
-const VLCButton: FC<Props> = ({ infohash }) => {
+const VLCButton: FC<Props> = ({ infohash, isLocal }) => {
   const link = `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(
-    generateVLCLink(infohash)
+    generateVLCLink(infohash, isLocal)
   )}`;
 
   return (

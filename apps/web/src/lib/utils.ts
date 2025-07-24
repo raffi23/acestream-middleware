@@ -5,12 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function generateVLCLink(infohash: string) {
+export function generateVLCLink(infohash: string, isLocal?: boolean) {
   const query = new URLSearchParams({
     id: infohash || "",
-    p_token: process.env.PANGOLIN_TOKEN || "",
   });
-  return `${process.env.NEXT_PUBLIC_BACKEND_URL}/ace/getstream?${query}`;
+  if (!isLocal) {
+    query.set("p_token", process.env.PANGOLIN_TOKEN || "");
+  }
+  return `${
+    isLocal ? "http://192.168.1.254:6878" : process.env.NEXT_PUBLIC_BACKEND_URL
+  }/ace/getstream?${query}`;
 }
 
 export const isShallowEqual = (

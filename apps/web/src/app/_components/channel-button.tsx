@@ -7,10 +7,11 @@ import { CopyIcon } from "lucide-react";
 
 type Props = {
   channel: ChannelSearchItem;
+  isLocal: boolean;
 };
 
-const ChannelCopyButton: FC<Props> = ({ channel }) => {
-  const link = generateVLCLink(channel.infohash);
+const ChannelCopyButton: FC<Props> = ({ channel, isLocal }) => {
+  const link = generateVLCLink(channel.infohash, isLocal);
 
   return (
     <CopyButton data={link}>

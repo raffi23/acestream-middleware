@@ -5,9 +5,10 @@ import { FC } from "react";
 
 type Props = {
   channel: ChannelSearchItem;
+  isLocal: boolean;
 };
 
-const ChannelItem: FC<Props> = ({ channel }) => {
+const ChannelItem: FC<Props> = ({ channel, isLocal }) => {
   return (
     <div
       key={channel.infohash}
@@ -16,8 +17,8 @@ const ChannelItem: FC<Props> = ({ channel }) => {
       <p>{channel.name}</p>
 
       <div className="flex items-center gap-2">
-        <ChannelCopyButton channel={channel} />
-        <VLCButton infohash={channel.infohash} />
+        <ChannelCopyButton channel={channel} isLocal={isLocal} />
+        <VLCButton infohash={channel.infohash} isLocal={isLocal} />
       </div>
     </div>
   );

@@ -80,7 +80,13 @@ export function useQueryFilter<T extends QueryParam>(
   );
 
   useEffect(() => {
-    setFilter(defaultValuesRef.current);
+    const searchParams = new URLSearchParams(window.location.search);
+    const data = Object.keys(defaultValuesRef.current).reduce((acc, key) => {
+      const previousValue = searchParams.get(key);
+      acc[key] = previousValue ? previousValue : defaultValuesRef.current[key];
+      return acc;
+    }, {} as QueryParam);
+    setFilter(data as T);
   }, [setFilter]);
 
   return { filter: state, setFilter, isTransitioning };

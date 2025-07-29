@@ -24,15 +24,14 @@ const generateM3U8 = (channelsMap: Map<string, ChannelSearchResult>) => {
 
 export const scrapeChannels = async () => {
   const queries = [
-    "music",
-    "sport",
-    "bbc",
-    "discovery",
-    "national geographic",
-    "hbo",
+    "bt sport",
+    "bein sports",
+    "fox sports",
+    "premier sports",
+    "sky sports",
     "shahid",
-    "sky",
-    "tnt",
+    "[us]",
+    "[uk]",
   ];
   const channels = new Map<string, ChannelSearchResult>();
   for (const query of queries) {
@@ -43,7 +42,7 @@ export const scrapeChannels = async () => {
           channels.set(stream.infohash, stream);
         }
       });
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
       console.error(
         `Error searching channels for query: ${query}`,

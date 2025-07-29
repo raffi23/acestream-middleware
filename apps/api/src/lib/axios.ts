@@ -7,8 +7,8 @@ const axios = base.create({
 });
 
 const axiosBase = base.create({
-  timeout: 12000,
-  signal: AbortSignal.timeout(12000),
+  timeout: 20000,
+  signal: AbortSignal.timeout(20000),
 });
 
 export { axiosBase };

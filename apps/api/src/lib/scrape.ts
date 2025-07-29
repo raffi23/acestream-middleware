@@ -35,21 +35,22 @@ export const scrapeChannels = async () => {
     "[uk]",
   ];
   const channels = new Map<string, ChannelSearchResult>();
-  const promises = queries.map((query) => searchChannels(query));
-
-  try {
-    const streams = (await Promise.all(promises)).flat();
-    streams.forEach((stream) => {
-      if (stream.infohash) {
-        channels.set(stream.infohash, stream);
-      }
-    });
-  } catch (error) {
-    console.error(
-      `Error searching channels`,
-      (error as AxiosError).code,
-      (error as AxiosError).status
-    );
+  for (const query of queries) {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const streams = await searchChannels(query);
+      streams.forEach((stream) => {
+        if (stream.infohash) {
+          channels.set(stream.infohash, stream);
+        }
+      });
+    } catch (error) {
+      console.error(
+        `Error searching channels for query: ${query}`,
+        (error as AxiosError).code,
+        (error as AxiosError).status
+      );
+    }
   }
 
   console.log("Scraped channels:", channels.size);

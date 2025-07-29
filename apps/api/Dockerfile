@@ -14,10 +14,11 @@ COPY . .
 
 RUN npx tsc
 
-RUN mkdir -p ./dist/src/public
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs-user
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 --ingroup nodejs nodejs-user \
+    && mkdir -p /app/dist/src/public \
+    && chown -R nodejs-user:nodejs ./dist/src/public \
+    && chmod -R 755 ./dist/src/public
 
 USER nodejs-user
 

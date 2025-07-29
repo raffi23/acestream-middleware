@@ -37,7 +37,7 @@ export const scrapeChannels = async () => {
   const channels = new Map<string, ChannelSearchResult>();
   for (const query of queries) {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       const streams = await searchChannels(query);
       streams.forEach((stream) => {
         if (stream.infohash) {

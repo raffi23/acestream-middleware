@@ -5,6 +5,8 @@ export const searchChannels = async (query: string) => {
   const queryData = new URLSearchParams({
     ...(typeof query === "string" && { q: query }),
   });
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   const consutructUrl = `https://www.acestreamsearch.net/en/?${queryData}`;
   const { data } = await axiosBase.get(consutructUrl, {
     headers: {

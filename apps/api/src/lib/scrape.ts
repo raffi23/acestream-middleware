@@ -48,6 +48,7 @@ export const scrapeChannels = async () => {
       console.error(
         `Error searching channels for query: ${query}`,
         (error as AxiosError).code,
+        (error as AxiosError).status,
         (error as AxiosError).message,
         (error as AxiosError).response?.status,
         (error as AxiosError).response?.data

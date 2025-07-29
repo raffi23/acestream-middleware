@@ -6,6 +6,11 @@ const axios = base.create({
   signal: AbortSignal.timeout(12000),
 });
 
-export { base as axiosBase };
+const axiosBase = base.create({
+  timeout: 12000,
+  signal: AbortSignal.timeout(12000),
+});
+
+export { axiosBase };
 
 export default axios;

@@ -14,6 +14,8 @@ COPY . .
 
 RUN npx tsc
 
+RUN mkdir -p ./dist/src/public
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs-user
 

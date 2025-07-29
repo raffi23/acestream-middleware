@@ -1,9 +1,12 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { json } from "express";
-import aceRouter from "./routes/stream-routes";
-import searchRouter from "./routes/search-routes";
+import cron from "node-cron";
+import { scrapeChannels } from "./lib/scrape";
 import { error_middleware } from "./middleware/error-middleware";
+import searchRouter from "./routes/search-routes";
+import aceRouter from "./routes/stream-routes";
+import path from "path";
 
 const app = express();
 app.use(cors());
@@ -13,7 +16,14 @@ app.use(cookieParser());
 app.use("/ace", aceRouter);
 app.use("/search", searchRouter);
 
+app.use(express.static(path.join(__dirname, "public")));
 app.use(error_middleware);
+
+cron.schedule("0 */12 * * *", async () => {
+  await scrapeChannels();
+});
+
+scrapeChannels();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 6877;
 const HOST = process.env.HOST || "0.0.0.0";

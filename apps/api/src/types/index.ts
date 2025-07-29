@@ -5,3 +5,8 @@ export type Channel = {
   availability_updated_at: number;
   categories: string[];
 };
+
+export type ChannelSearchResult = {
+  name: string;
+  infohash: string | undefined;
+};

@@ -2,8 +2,6 @@ services:
   acestream:
     image: blaiseio/acelink
     container_name: acestream
-    ports:
-      - "6878:6878"
     platform: linux/amd64
     restart: unless-stopped
 
@@ -13,8 +11,6 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     container_name: acestream-api
-    ports:
-      - "6877:6877"
     depends_on:
       - acestream
     restart: unless-stopped
@@ -29,8 +25,6 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
     container_name: acestream-web
-    ports:
-      - "6876:6876"
     depends_on:
       - acestream
       - acestream-api

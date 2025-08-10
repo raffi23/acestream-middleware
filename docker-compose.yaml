@@ -35,8 +35,6 @@ services:
       - acestream
       - acestream-api
     restart: unless-stopped
-    env_file:
-      - ./apps/web/.env
 
 networks:
   default:

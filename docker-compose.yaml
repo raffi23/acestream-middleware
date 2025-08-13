@@ -41,3 +41,6 @@ services:
       - BACKEND_URL=${BACKEND_URL}
       - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
       - PANGOLIN_TOKEN=${PANGOLIN_TOKEN}
+
+networks:
+  default:

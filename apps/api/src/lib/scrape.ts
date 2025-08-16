@@ -2,7 +2,6 @@ import path from "path";
 import { ChannelSearchResult } from "../types";
 import { searchChannels } from "./search";
 import fs from "fs";
-import { AxiosError } from "axios";
 
 function saveM3U8ToFile(m3u8String: string, filename = "live.m3u8") {
   const filePath = path.join(__dirname, "../public", filename);
@@ -35,22 +34,31 @@ export const scrapeChannels = async () => {
     "[uk]",
   ];
   const channels = new Map<string, ChannelSearchResult>();
+  let promises: ReturnType<typeof searchChannels>[] = [];
+
   for (const query of queries) {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 6000));
-      const streams = await searchChannels(query);
-      streams.forEach((stream) => {
-        if (stream.infohash) {
-          channels.set(stream.infohash, stream);
-        }
-      });
-    } catch (error) {
-      console.error(
-        `Error searching channels for query: ${query}`,
-        (error as AxiosError).code,
-        (error as AxiosError).status
-      );
-    }
+    promises.push(
+      new Promise((resolve, reject) =>
+        setTimeout(() => {
+          searchChannels(query)
+            .then((streams) => resolve(streams))
+            .catch(reject);
+        }, 6000)
+      )
+    );
+  }
+
+  try {
+    const streams = await Promise.all(promises).then((results) =>
+      results.flat()
+    );
+    streams.forEach((stream) => {
+      if (stream.infohash) {
+        channels.set(stream.infohash, stream);
+      }
+    });
+  } catch (error) {
+    console.log("Error scraping channels:", error);
   }
 
   console.log("Scraped channels:", channels.size);

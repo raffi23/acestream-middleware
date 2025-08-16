@@ -32,8 +32,11 @@ export const scrapeChannels = async () => {
     "shahid",
     "[us]",
     "[uk]",
+    "Матч",
+    "Setanta",
+    "music",
+    "armenia",
   ];
-  const channels = new Map<string, ChannelSearchResult>();
   let promises: ReturnType<typeof searchChannels>[] = [];
 
   for (const query of queries) {
@@ -49,6 +52,7 @@ export const scrapeChannels = async () => {
   }
 
   try {
+    const channels = new Map<string, ChannelSearchResult>();
     const streams = await Promise.all(promises).then((results) =>
       results.flat()
     );
@@ -57,12 +61,12 @@ export const scrapeChannels = async () => {
         channels.set(stream.infohash, stream);
       }
     });
+
+    console.log("Scraped channels:", channels.size);
+
+    const m3u8 = generateM3U8(channels);
+    saveM3U8ToFile(m3u8);
   } catch (error) {
     console.log("Error scraping channels:", error);
   }
-
-  console.log("Scraped channels:", channels.size);
-
-  const m3u8 = generateM3U8(channels);
-  saveM3U8ToFile(m3u8);
 };

@@ -29,6 +29,7 @@ export const scrapeChannels = async () => {
     "fox sports",
     "premier sports",
     "sky sports",
+    "sky sport f1",
     "shahid",
     "[us]",
     "[uk]",

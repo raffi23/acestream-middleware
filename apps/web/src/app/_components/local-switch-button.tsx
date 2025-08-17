@@ -12,7 +12,7 @@ const LocalSwitchButton: FC = () => {
   const {
     filter: { local },
     setFilter,
-  } = useQueryFilter<QueryFilters>({ local: "false" });
+  } = useQueryFilter<QueryFilters>({ local: "true" });
   const isLocalSearch = local === "true";
 
   return (

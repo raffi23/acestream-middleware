@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import LocalSwitchButton from "./_components/local-switch-button";
 
 export default async function Home({ searchParams }: PropsWithParams) {
-  const { query = "", local = "false" } = await searchParams;
+  const { query = "", local = "true" } = await searchParams;
   const isLocalSearch = local === "true";
   const data = query
     ? await queryStream(query).catch((error) => {

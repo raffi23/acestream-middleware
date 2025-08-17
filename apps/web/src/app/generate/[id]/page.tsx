@@ -7,7 +7,7 @@ import { FC } from "react";
 const Page: FC<PropsWithParams> = async ({ params, searchParams }) => {
   const { id } = await params;
   if (!id) redirect("/generate");
-  const { local = "false" } = await searchParams;
+  const { local = "true" } = await searchParams;
   const isLocal = local === "true";
 
   return (

@@ -7,8 +7,12 @@ services:
       - 8621:8621/udp
     platform: linux/amd64
     restart: unless-stopped
-    environment:
-      - LIVE_BUFFER=60
+    command: >
+      --client-console
+      --cache-limit 2
+      --live-buffer 60
+      --use-internal-buffering 1
+      --upload-limit 200
 
   acestream-api:
     image: acestream-api

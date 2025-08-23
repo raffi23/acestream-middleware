@@ -2,6 +2,7 @@ import path from "path";
 import { ChannelSearchResult } from "../types";
 import { searchChannels } from "./search";
 import fs from "fs";
+import { AxiosError } from "axios";
 
 function saveM3U8ToFile(m3u8String: string, filename = "live.m3u8") {
   const filePath = path.join(__dirname, "../public", filename);
@@ -68,6 +69,6 @@ export const scrapeChannels = async () => {
     const m3u8 = generateM3U8(channels);
     saveM3U8ToFile(m3u8);
   } catch (error) {
-    console.log("Error scraping channels:", error);
+    console.log("Error scraping channels:", (error as AxiosError)?.message);
   }
 };

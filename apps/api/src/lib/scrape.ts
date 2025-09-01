@@ -38,8 +38,6 @@ export const scrapeChannels = async () => {
     "[uk]",
     "Матч",
     "Setanta",
-    "music",
-    "armenia",
   ];
 
   const channels = new Map<string, ChannelSearchResult>();

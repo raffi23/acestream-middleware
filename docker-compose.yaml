@@ -10,7 +10,7 @@ services:
     command: >
       --client-console
       --cache-limit 2
-      --live-buffer 60
+      --live-buffer 15
       --use-internal-buffering 1
       --upload-limit 200
 

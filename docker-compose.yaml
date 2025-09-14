@@ -2,9 +2,7 @@ services:
   acestream:
     image: wafy80/acestream
     container_name: acestream
-    ports:
-      - 6878:6878
-      - 8621:8621/udp
+    network_mode: host
     platform: linux/amd64
     restart: unless-stopped
     command: >
@@ -28,7 +26,7 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=6877
-      - ACE_URL=http://acestream:6878
+      - ACE_URL=http://127.0.0.1:6878
 
   acestream-web:
     image: acestream-web

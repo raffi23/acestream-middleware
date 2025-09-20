@@ -7,10 +7,13 @@ services:
     restart: unless-stopped
     command: >
       --client-console
-      --cache-limit 2
-      --live-buffer 15
-      --use-internal-buffering 1
-      --upload-limit 200
+      --max-connections 500
+      --max-peers 100
+      --max-upload-slots 20
+      --max-upload-speed 0
+      --max-download-speed 0
+      --cache-auto 1
+      --cache-max-bytes 10737418240
 
   acestream-api:
     image: acestream-api

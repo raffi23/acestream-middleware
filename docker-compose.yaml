@@ -31,24 +31,24 @@ services:
       - PORT=6877
       - ACE_URL=http://127.0.0.1:6878
 
-  acestream-web:
-    image: acestream-web
-    build:
-      context: ./apps/web
-      dockerfile: Dockerfile
-    container_name: acestream-web
-    ports:
-      - "6876:6876"
-    depends_on:
-      - acestream
-      - acestream-api
-    restart: unless-stopped
-    environment:
-      - PORT=${PORT}
-      - HOSTNAME=${HOSTNAME}
-      - BACKEND_URL=${BACKEND_URL}
-      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-      - PANGOLIN_TOKEN=${PANGOLIN_TOKEN}
+  # acestream-web:
+  #   image: acestream-web
+  #   build:
+  #     context: ./apps/web
+  #     dockerfile: Dockerfile
+  #   container_name: acestream-web
+  #   ports:
+  #     - "6876:6876"
+  #   depends_on:
+  #     - acestream
+  #     - acestream-api
+  #   restart: unless-stopped
+  #   environment:
+  #     - PORT=${PORT}
+  #     - HOSTNAME=${HOSTNAME}
+  #     - BACKEND_URL=${BACKEND_URL}
+  #     - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+  #     - PANGOLIN_TOKEN=${PANGOLIN_TOKEN}
 
 networks:
   default:

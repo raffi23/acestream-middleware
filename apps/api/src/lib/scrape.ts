@@ -6,6 +6,8 @@ import path from "path";
 import { ChannelSearchResult } from "../types";
 import { axiosBase } from "./axios";
 
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
 const saveM3U8ToFile = (m3u8String: string, filename = "live.m3u8") => {
   const dirPath = path.join(__dirname, "../public");
   const filePath = path.join(dirPath, filename);
@@ -183,6 +185,7 @@ export const searchAceChannels = async (query: string) => {
   const consutructUrl = `https://www.acestreamsearch.net/en/?${queryData}`;
   console.log("--------------------------------");
   console.log(`Processing search: ${query}`);
+  await delay(2000);
   const data = await fetchPage(consutructUrl);
   if (!data) return [];
 
@@ -209,8 +212,8 @@ export const searchAceChannels = async (query: string) => {
 export const generateAndSaveM3U8 = async () => {
   console.log("Generating M3U8...");
 
-  const searchedChannels = await scrapeChannels();
   const livetvsxChannels = await scrapeLivetvsx();
+  const searchedChannels = await scrapeChannels();
 
   const channels = new Map<string, ChannelSearchResult>([
     ...searchedChannels,

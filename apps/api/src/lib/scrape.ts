@@ -53,17 +53,19 @@ export const scrapeChannels = async () => {
   ];
 
   const channels = new Map<string, ChannelSearchResult>();
-  for (const query of queries) {
+
+  const promises = queries.map(async (query) => {
     try {
       const _channels = await searchAceChannels(query);
-
       for (const channel of _channels) {
         channels.set(channel.infohash, channel);
       }
     } catch (error) {
       console.log(`Error scraping ${query}:`, (error as AxiosError)?.message);
     }
-  }
+  });
+
+  await Promise.allSettled(promises);
 
   return channels;
 };
@@ -209,8 +211,10 @@ export const searchAceChannels = async (query: string) => {
 export const generateAndSaveM3U8 = async () => {
   console.log("Generating M3U8...");
 
-  const searchedChannels = await scrapeChannels();
-  const livetvsxChannels = await scrapeLivetvsx();
+  const [searchedChannels, livetvsxChannels] = await Promise.all([
+    scrapeChannels(),
+    scrapeLivetvsx(),
+  ]);
 
   const channels = new Map<string, ChannelSearchResult>([
     ...searchedChannels,

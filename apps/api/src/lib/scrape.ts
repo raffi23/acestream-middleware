@@ -31,7 +31,9 @@ const generateM3U8 = (channelsMap: Map<string, ChannelSearchResult>) => {
 
   let m3u8 = "#EXTM3U\n";
   for (const [category, channels] of categories.entries()) {
-    for (const { name, infohash } of channels) {
+    for (const { name, infohash } of channels.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    })) {
       const streamUrl = `http://192.168.1.254:6878/ace/getstream?id=${infohash}`;
       m3u8 += `#EXTINF:-1 tvg-name="${name}" group-title="${category}",${name}\n${streamUrl}\n`;
     }

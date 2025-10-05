@@ -24,7 +24,7 @@ const generateM3U8 = (channelsMap: Map<string, ChannelSearchResult>) => {
 
   for (const [, channel] of channelsMap.entries()) {
     if (!channel.infohash) continue;
-    const cat = channel.category || "AcestreamSearch";
+    const cat = channel.category || "Other";
     if (!categories.has(cat)) categories.set(cat, []);
     categories.get(cat)!.push(channel);
   }
@@ -82,7 +82,6 @@ export const fetchPage = async (eventUrl: string) => {
       httpsAgent: httpsAgent,
       responseType: "text",
       maxRedirects: 3,
-      timeout: 30000,
     });
     return data;
   } catch (error) {
@@ -97,11 +96,11 @@ export const fetchPage = async (eventUrl: string) => {
 const extractLivetvsxLiveEvents = (page: string) => {
   const $ = cheerio.load(page);
   const extracted = $(
-    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2)"
+    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr > td > table:nth-child(5) > tbody > tr > td:nth-child(2)"
   ).extract({
     events: [
       {
-        selector: 'td:has(img[src*="live.gif"]) > a.live',
+        selector: "a.live",
         value: (el) => {
           const name = $(el).text();
           const pathname = $(el).attr("href");
@@ -217,15 +216,12 @@ export const generateAndSaveM3U8 = async () => {
   const livetvsxRacingChannels = await scrapeLivetvsx(
     "https://livetv.sx/enx/allupcomingsports/7/"
   );
-  const searchedChannels = await scrapeChannels();
 
   const channels = new Map<string, ChannelSearchResult>([
-    ...searchedChannels,
     ...livetvsxFootballChannels,
     ...livetvsxRacingChannels,
   ]);
 
-  console.log("Searched channels count:", searchedChannels.size);
   console.log("Livetvsx channels count:", livetvsxFootballChannels.size);
   console.log(`Total unique channels: ${channels.size}`);
 

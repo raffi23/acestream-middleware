@@ -8,5 +8,6 @@ export type Channel = {
 
 export type ChannelSearchResult = {
   name: string;
-  infohash: string | undefined;
+  infohash: string;
+  category?: string;
 };

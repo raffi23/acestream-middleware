@@ -2,7 +2,11 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { json } from "express";
 import cron from "node-cron";
-import { scrapeChannels } from "./lib/scrape";
+import {
+  generateAndSaveM3U8,
+  scrapeChannels,
+  scrapeLivetvsx,
+} from "./lib/scrape";
 import { error_middleware } from "./middleware/error-middleware";
 import searchRouter from "./routes/search-routes";
 import aceRouter from "./routes/stream-routes";
@@ -19,11 +23,9 @@ app.use("/search", searchRouter);
 app.use(express.static(path.join(__dirname, "public")));
 app.use(error_middleware);
 
-cron.schedule("0 */12 * * *", async () => {
-  await scrapeChannels();
+cron.schedule("*/10 * * * *", async () => {
+  await generateAndSaveM3U8();
 });
-
-scrapeChannels();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 6877;
 const HOST = process.env.HOST || "0.0.0.0";

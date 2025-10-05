@@ -23,7 +23,7 @@ app.use("/search", searchRouter);
 app.use(express.static(path.join(__dirname, "public")));
 app.use(error_middleware);
 
-cron.schedule("*/10 * * * *", async () => {
+cron.schedule("*/30 * * * *", async () => {
   await generateAndSaveM3U8();
 });
 

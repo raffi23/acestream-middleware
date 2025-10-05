@@ -53,19 +53,17 @@ export const scrapeChannels = async () => {
   ];
 
   const channels = new Map<string, ChannelSearchResult>();
-
-  const promises = queries.map(async (query) => {
+  for (const query of queries) {
     try {
       const _channels = await searchAceChannels(query);
+
       for (const channel of _channels) {
         channels.set(channel.infohash, channel);
       }
     } catch (error) {
       console.log(`Error scraping ${query}:`, (error as AxiosError)?.message);
     }
-  });
-
-  await Promise.allSettled(promises);
+  }
 
   return channels;
 };
@@ -150,30 +148,29 @@ export const scrapeLivetvsx = async () => {
   const events = extractLivetvsxLiveEvents(page);
   const channels = new Map<string, ChannelSearchResult>();
 
-  const promises = events.map(async (event) => {
+  for (const event of events) {
     console.log("--------------------------------");
     console.log(`Processing event: ${event.name}`);
-
     const eventPage = await fetchPage(event.url);
     if (!eventPage) {
       console.error(`Failed to fetch event page: ${event.name}`);
-      return;
+      continue;
     }
 
     const streams = extractLivetvsxAceStreams(eventPage);
     console.log(`Found ${streams.length} streams for event: ${event.name}`);
 
-    streams.forEach((stream, idx) => {
+    let counter = 0;
+    for (const stream of streams) {
+      counter++;
       const infohash = stream.replace("acestream://", "");
       channels.set(infohash, {
-        name: `(${idx + 1}) - ${event.name}`,
+        name: `(${counter}) - ${event.name}`,
         infohash,
         category: event.name,
       });
-    });
-  });
-
-  await Promise.allSettled(promises);
+    }
+  }
 
   return channels;
 };
@@ -212,10 +209,8 @@ export const searchAceChannels = async (query: string) => {
 export const generateAndSaveM3U8 = async () => {
   console.log("Generating M3U8...");
 
-  const [searchedChannels, livetvsxChannels] = await Promise.all([
-    scrapeChannels(),
-    scrapeLivetvsx(),
-  ]);
+  const searchedChannels = await scrapeChannels();
+  const livetvsxChannels = await scrapeLivetvsx();
 
   const channels = new Map<string, ChannelSearchResult>([
     ...searchedChannels,

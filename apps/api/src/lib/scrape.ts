@@ -85,11 +85,14 @@ export const fetchPage = async (eventUrl: string) => {
       httpsAgent: httpsAgent,
       responseType: "text",
       maxRedirects: 3,
+      timeout: 30000,
     });
     return data;
   } catch (error) {
-    console.error(`Error fetching page: ${eventUrl}`);
-    console.error(error);
+    console.error(
+      `Error fetching page: ${eventUrl}`,
+      (error as AxiosError)?.code
+    );
     return null;
   }
 };
@@ -142,6 +145,7 @@ export const scrapeLivetvsx = async () => {
   const channels = new Map<string, ChannelSearchResult>();
 
   for (const event of events) {
+    console.log(`Processing event: ${event.name}`);
     const eventPage = await fetchPage(event.url);
     if (!eventPage) {
       console.error(`Failed to fetch event page: ${event.name}`);
@@ -172,6 +176,7 @@ export const searchAceChannels = async (query: string) => {
   });
 
   const consutructUrl = `https://www.acestreamsearch.net/en/?${queryData}`;
+  console.log(`Processing search: ${query}`);
   const data = await fetchPage(consutructUrl);
   if (!data) return [];
 
@@ -189,6 +194,8 @@ export const searchAceChannels = async (query: string) => {
       },
     ],
   });
+
+  console.log(`Found ${extracted.streams.length} streams for query: ${query}`);
 
   return extracted.streams.filter(Boolean);
 };

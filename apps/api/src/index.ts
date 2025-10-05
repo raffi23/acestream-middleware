@@ -27,6 +27,8 @@ cron.schedule("*/10 * * * *", async () => {
   await generateAndSaveM3U8();
 });
 
+generateAndSaveM3U8();
+
 const PORT = process.env.PORT ? Number(process.env.PORT) : 6877;
 const HOST = process.env.HOST || "0.0.0.0";
 

@@ -88,10 +88,8 @@ export const fetchPage = async (eventUrl: string) => {
     });
     return data;
   } catch (error) {
-    console.error(
-      `Error fetching page (${(error as AxiosError)?.status}):`,
-      (error as AxiosError)?.message
-    );
+    console.error(`Error fetching page: ${eventUrl}`);
+    console.error(error);
     return null;
   }
 };

@@ -139,9 +139,8 @@ const extractLivetvsxAceStreams = (page: string) => {
   return streams.filter(Boolean);
 };
 
-export const scrapeLivetvsx = async () => {
-  const footballUrl = "https://www.livetv.sx/enx/allupcomingsports/1/";
-  const page = await fetchPage(footballUrl);
+export const scrapeLivetvsx = async (link: string) => {
+  const page = await fetchPage(link);
   if (!page) {
     console.error("Failed to get https://livetv.sx");
     return new Map<string, ChannelSearchResult>();
@@ -212,16 +211,22 @@ export const searchAceChannels = async (query: string) => {
 export const generateAndSaveM3U8 = async () => {
   console.log("Generating M3U8...");
 
-  const livetvsxChannels = await scrapeLivetvsx();
+  const livetvsxFootballChannels = await scrapeLivetvsx(
+    "https://livetv.sx/enx/allupcomingsports/1/"
+  );
+  const livetvsxRacingChannels = await scrapeLivetvsx(
+    "https://livetv.sx/enx/allupcomingsports/7/"
+  );
   const searchedChannels = await scrapeChannels();
 
   const channels = new Map<string, ChannelSearchResult>([
     ...searchedChannels,
-    ...livetvsxChannels,
+    ...livetvsxFootballChannels,
+    ...livetvsxRacingChannels,
   ]);
 
   console.log("Searched channels count:", searchedChannels.size);
-  console.log("Livetvsx channels count:", livetvsxChannels.size);
+  console.log("Livetvsx channels count:", livetvsxFootballChannels.size);
   console.log(`Total unique channels: ${channels.size}`);
 
   const m3u8String = generateM3U8(channels);

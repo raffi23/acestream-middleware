@@ -70,7 +70,6 @@ export const scrapeChannels = async () => {
 
 export const fetchPage = async (eventUrl: string) => {
   try {
-    console.log(`Fetching page: ${eventUrl}`);
     const httpsAgent = new Agent({ rejectUnauthorized: false });
     const { data } = await axiosBase.get<string>(eventUrl, {
       headers: {
@@ -141,6 +140,7 @@ export const scrapeLivetvsx = async () => {
   const channels = new Map<string, ChannelSearchResult>();
 
   for (const event of events) {
+    console.log("--------------------------------");
     console.log(`Processing event: ${event.name}`);
     const eventPage = await fetchPage(event.url);
     if (!eventPage) {
@@ -150,6 +150,7 @@ export const scrapeLivetvsx = async () => {
 
     const streams = extractLivetvsxAceStreams(eventPage);
     console.log(`Found ${streams.length} streams for event: ${event.name}`);
+    console.log("--------------------------------");
 
     let counter = 0;
     for (const stream of streams) {
@@ -172,6 +173,7 @@ export const searchAceChannels = async (query: string) => {
   });
 
   const consutructUrl = `https://www.acestreamsearch.net/en/?${queryData}`;
+  console.log("--------------------------------");
   console.log(`Processing search: ${query}`);
   const data = await fetchPage(consutructUrl);
   if (!data) return [];
@@ -192,6 +194,7 @@ export const searchAceChannels = async (query: string) => {
   });
 
   console.log(`Found ${extracted.streams.length} streams for query: ${query}`);
+  console.log("--------------------------------");
 
   return extracted.streams.filter(Boolean);
 };

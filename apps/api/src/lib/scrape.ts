@@ -92,11 +92,11 @@ export const fetchPage = async (eventUrl: string) => {
 const extractLivetvsxLiveEvents = (page: string) => {
   const $ = cheerio.load(page);
   const extracted = $(
-    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr > td > table:nth-child(5) > tbody > tr > td:nth-child(2) > table:nth-child(2)"
+    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2)"
   ).extract({
     events: [
       {
-        selector: "a.live",
+        selector: 'td:has(img[src*="live.gif"]) > a.live',
         value: (el) => {
           const name = $(el).text();
           const pathname = $(el).attr("href");

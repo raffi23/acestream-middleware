@@ -150,29 +150,30 @@ export const scrapeLivetvsx = async () => {
   const events = extractLivetvsxLiveEvents(page);
   const channels = new Map<string, ChannelSearchResult>();
 
-  for (const event of events) {
+  const promises = events.map(async (event) => {
     console.log("--------------------------------");
     console.log(`Processing event: ${event.name}`);
+
     const eventPage = await fetchPage(event.url);
     if (!eventPage) {
       console.error(`Failed to fetch event page: ${event.name}`);
-      continue;
+      return;
     }
 
     const streams = extractLivetvsxAceStreams(eventPage);
     console.log(`Found ${streams.length} streams for event: ${event.name}`);
 
-    let counter = 0;
-    for (const stream of streams) {
-      counter++;
+    streams.forEach((stream, idx) => {
       const infohash = stream.replace("acestream://", "");
       channels.set(infohash, {
-        name: `(${counter}) - ${event.name}`,
+        name: `(${idx + 1}) - ${event.name}`,
         infohash,
         category: event.name,
       });
-    }
-  }
+    });
+  });
+
+  await Promise.allSettled(promises);
 
   return channels;
 };

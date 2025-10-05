@@ -150,7 +150,6 @@ export const scrapeLivetvsx = async () => {
 
     const streams = extractLivetvsxAceStreams(eventPage);
     console.log(`Found ${streams.length} streams for event: ${event.name}`);
-    console.log("--------------------------------");
 
     let counter = 0;
     for (const stream of streams) {
@@ -194,7 +193,6 @@ export const searchAceChannels = async (query: string) => {
   });
 
   console.log(`Found ${extracted.streams.length} streams for query: ${query}`);
-  console.log("--------------------------------");
 
   return extracted.streams.filter(Boolean);
 };

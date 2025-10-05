@@ -180,7 +180,7 @@ export const scrapeLivetvsx = async (link: string) => {
     for (const stream of streams) {
       const { infohash, language, bitrate, rating } = stream;
       channels.set(infohash, {
-        name: `[${language}] ${event.name} [${bitrate}] [${rating}]`,
+        name: `[${language}] [${bitrate}] [${rating}] ${event.name}`,
         infohash,
         category: event.name,
       });

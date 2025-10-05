@@ -222,8 +222,8 @@ export const generateAndSaveM3U8 = async () => {
     ...livetvsxRacingChannels,
   ]);
 
-  console.log("Livetvsx channels count:", livetvsxFootballChannels.size);
-  console.log(`Total unique channels: ${channels.size}`);
+  console.log("Event count:", livetvsxFootballChannels.size);
+  console.log(`Total streams: ${channels.size}`);
 
   const m3u8String = generateM3U8(channels);
 

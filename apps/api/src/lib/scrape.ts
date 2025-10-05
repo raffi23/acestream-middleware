@@ -96,7 +96,7 @@ export const fetchPage = async (eventUrl: string) => {
 const extractLivetvsxLiveEvents = (page: string) => {
   const $ = cheerio.load(page);
   const root = $(
-    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2)"
+    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr > td > table:nth-child(5) > tbody > tr > td:nth-child(2) > table:nth-child(2)"
   );
 
   const events = root

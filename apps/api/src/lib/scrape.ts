@@ -95,24 +95,22 @@ export const fetchPage = async (eventUrl: string) => {
 
 const extractLivetvsxLiveEvents = (page: string) => {
   const $ = cheerio.load(page);
-  const extracted = $(
-    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr > td > table:nth-child(5) > tbody > tr > td:nth-child(2)"
-  ).extract({
-    events: [
-      {
-        selector: "a.live",
-        value: (el) => {
-          const name = $(el).text();
-          const pathname = $(el).attr("href");
-          return { name, pathname };
-        },
-      },
-    ],
-  });
+  const root = $(
+    "body > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2)"
+  );
+
+  const events = root
+    .find('td:has(img[src*="live.gif"]) > a.live')
+    .map((_, el) => {
+      const name = $(el).text();
+      const pathname = $(el).attr("href");
+      return { name, pathname };
+    })
+    .get();
 
   const seen = new Set<string>();
   const uniqueEvents = [];
-  for (const e of extracted.events) {
+  for (const e of events) {
     if (!e.pathname) continue;
     const key = `${e.name}|${e.pathname}`;
     if (!seen.has(key)) {

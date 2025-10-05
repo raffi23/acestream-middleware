@@ -6,8 +6,6 @@ import path from "path";
 import { ChannelSearchResult } from "../types";
 import { axiosBase } from "./axios";
 
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
 const saveM3U8ToFile = (m3u8String: string, filename = "live.m3u8") => {
   const dirPath = path.join(__dirname, "../public");
   const filePath = path.join(dirPath, filename);
@@ -65,8 +63,6 @@ export const scrapeChannels = async () => {
     } catch (error) {
       console.log(`Error scraping ${query}:`, (error as AxiosError)?.message);
     }
-
-    await delay(2000);
   }
 
   return channels;
@@ -203,10 +199,8 @@ export const searchAceChannels = async (query: string) => {
 export const generateAndSaveM3U8 = async () => {
   console.log("Generating M3U8...");
 
-  const [searchedChannels, livetvsxChannels] = await Promise.all([
-    scrapeChannels(),
-    scrapeLivetvsx(),
-  ]);
+  const searchedChannels = await scrapeChannels();
+  const livetvsxChannels = await scrapeLivetvsx();
 
   const channels = new Map<string, ChannelSearchResult>([
     ...searchedChannels,

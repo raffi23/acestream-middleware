@@ -19,7 +19,7 @@ const saveM3U8ToFile = (m3u8String: string, filename = "live.m3u8") => {
   fs.writeFileSync(filePath, m3u8String, { flag: "w" });
 };
 
-const generateM3U8 = (channelsMap: Map<string, ChannelSearchResult>) => {
+const generateM3U8 = (channelsMap: Map<string, ChannelSearchResult>, remote?: boolean) => {
   const categories = new Map<string, ChannelSearchResult[]>();
 
   for (const [, channel] of channelsMap.entries()) {
@@ -34,7 +34,7 @@ const generateM3U8 = (channelsMap: Map<string, ChannelSearchResult>) => {
     for (const { name, infohash } of channels.sort((a, b) => {
       return a.name.localeCompare(b.name);
     })) {
-      const streamUrl = `http://192.168.1.254:6878/ace/getstream?id=${infohash}`;
+      const streamUrl = !remote ? `http://192.168.1.254:6878/ace/getstream?id=${infohash}` : `https://stream.rhymecode.net/ace/getstream?id=${infohash}&p_token=xcdy2nk4.wxktwxqpkyfphk4itwcks4pekm`;
       m3u8 += `#EXTINF:-1 tvg-name="${name}" group-title="${category}",${name}\n${streamUrl}\n`;
     }
   }
@@ -241,7 +241,8 @@ export const generateAndSaveM3U8 = async () => {
   console.log(`Total streams: ${channels.size}`);
 
   const m3u8String = generateM3U8(channels);
-
-  saveM3U8ToFile(m3u8String);
+  const m3u8StringLive = generateM3U8(channels, true);
+  saveM3U8ToFile(m3u8StringLive);
+  saveM3U8ToFile(m3u8String, "live-remote.m3u8");
   return m3u8String;
 };

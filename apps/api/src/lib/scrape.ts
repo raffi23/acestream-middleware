@@ -100,7 +100,7 @@ const extractLivetvsxLiveEvents = (page: string) => {
   );
 
   const events = root
-    .find('td:has(img[src*="live.gif"]) > a.live')
+    .find("a.live")
     .map((_, el) => {
       const name = $(el).text();
       const pathname = $(el).attr("href");

@@ -128,14 +128,31 @@ const extractLivetvsxLiveEvents = (page: string) => {
 };
 
 const extractLivetvsxAceStreams = (page: string) => {
-  const streams: string[] = [];
+  const streams: {
+    infohash: string;
+    language: string;
+    bitrate: string;
+    rating: string;
+  }[] = [];
   const $ = cheerio.load(page);
-  $('a[href^="acestream://"]').each((_, el) => {
-    const href = $(el).attr("href");
-    if (!href) return;
-    streams.push(href);
+  const languages = $('tr:has(a[href^="acestream://"]) > td > img[title]');
+  const bitrates = $('tr:has(a[href^="acestream://"]) > td.bitrate');
+  const ratings = $('tr:has(a[href^="acestream://"]) > td.rate');
+  const links = $('a[href^="acestream://"]');
+
+  links.each((i, el) => {
+    const link = $(el).attr("href");
+    if (!link) return;
+
+    const infohash = link.replace("acestream://", "");
+    const language = languages.eq(i).attr("title") || "unknown";
+    const bitrate = bitrates.eq(i).text().trim() || "0kbps";
+    const rating = ratings.eq(i).text().trim() || "0%";
+
+    streams.push({ infohash, language, bitrate, rating });
   });
-  return streams.filter(Boolean);
+
+  return streams;
 };
 
 export const scrapeLivetvsx = async (link: string) => {
@@ -160,12 +177,10 @@ export const scrapeLivetvsx = async (link: string) => {
     const streams = extractLivetvsxAceStreams(eventPage);
     console.log(`Found ${streams.length} streams for event: ${event.name}`);
 
-    let counter = 0;
     for (const stream of streams) {
-      counter++;
-      const infohash = stream.replace("acestream://", "");
+      const { infohash, language, bitrate, rating } = stream;
       channels.set(infohash, {
-        name: `(${counter}) - ${event.name}`,
+        name: `[${language}] ${event.name} [${bitrate}] [${rating}]`,
         infohash,
         category: event.name,
       });

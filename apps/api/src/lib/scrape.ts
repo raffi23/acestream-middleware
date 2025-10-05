@@ -109,12 +109,21 @@ const extractLivetvsxLiveEvents = (page: string) => {
     ],
   });
 
-  return extracted.events
-    .filter((e) => Boolean(e.pathname))
-    .map((e) => ({
-      name: e.name,
-      url: "https://www.livetv.sx" + e.pathname,
-    }));
+  const seen = new Set<string>();
+  const uniqueEvents = [];
+  for (const e of extracted.events) {
+    if (!e.pathname) continue;
+    const key = `${e.name}|${e.pathname}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueEvents.push(e);
+    }
+  }
+
+  return uniqueEvents.map((e) => ({
+    name: e.name,
+    url: "https://www.livetv.sx" + e.pathname,
+  }));
 };
 
 const extractLivetvsxAceStreams = (page: string) => {

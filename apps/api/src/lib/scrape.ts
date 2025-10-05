@@ -242,7 +242,7 @@ export const generateAndSaveM3U8 = async () => {
 
   const m3u8String = generateM3U8(channels);
   const m3u8StringLive = generateM3U8(channels, true);
-  saveM3U8ToFile(m3u8StringLive);
-  saveM3U8ToFile(m3u8String, "live-remote.m3u8");
+  saveM3U8ToFile(m3u8StringLive, "live-remote.m3u8");
+  saveM3U8ToFile(m3u8String);
   return m3u8String;
 };

@@ -8,7 +8,7 @@ const REMOTE_STREAM_BASE_URL = process.env.REMOTE_STREAM_BASE_URL || "";
 const REMOTE_STREAM_TOKEN = process.env.REMOTE_STREAM_TOKEN || "";
 const SEARCH_DELAY_MS = Number(process.env.SEARCH_DELAY_MS) || 1500;
 
-const QUERIES: string[] = ["sport", "music", "movie"];
+const QUERIES: string[] = ["[uk]", "[us]", "sport", "music", "movie"];
 
 const collectChannels = async () => {
   const channels = new Map<string, ChannelSearchResult>();

@@ -1,12 +1,9 @@
+import "dotenv/config";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { json } from "express";
 import cron from "node-cron";
-import {
-  generateAndSaveM3U8,
-  scrapeChannels,
-  scrapeLivetvsx,
-} from "./lib/scrape";
+import { generateAndSaveM3U8 } from "./lib/scrape";
 import { error_middleware } from "./middleware/error-middleware";
 import searchRouter from "./routes/search-routes";
 import aceRouter from "./routes/stream-routes";

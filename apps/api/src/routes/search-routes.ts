@@ -1,5 +1,5 @@
 import { Request, Response, Router } from "express";
-import { searchAceChannels } from "../lib/scrape";
+import { searchAceChannels } from "../lib/search-api";
 import { Channel } from "../types";
 
 const searchRouter = Router();

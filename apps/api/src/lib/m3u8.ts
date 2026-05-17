@@ -45,7 +45,7 @@ export const generateM3U8 = (
 
     for (const { name, infohash } of sortedChannels) {
       const streamUrl = buildStreamUrl(baseUrl, infohash, token);
-      m3u8 += `#EXTINF:-1 tvg-name="${name}" group-title="${category}",${name}\n${streamUrl}\n`;
+      m3u8 += `#EXTINF:-1 tvg-name="${name}" tvg-type="live" group-title="${category}",${name}\n${streamUrl}\n`;
     }
   }
 

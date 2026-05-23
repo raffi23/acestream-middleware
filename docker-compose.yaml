@@ -10,14 +10,8 @@ services:
     command: >
       --client-console
       --bind-all
-      --max-connections 500
-      --max-peers 100
-      --max-upload-slots 20
-      --max-upload-speed 0
-      --max-download-speed 0
-      --cache-auto 1
-      --cache-max-bytes 10737418240
       --live-buffer 30
+      --upload-limit 1
 
   acestream-api:
     image: acestream-api

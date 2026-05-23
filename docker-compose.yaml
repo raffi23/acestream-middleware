@@ -12,6 +12,8 @@ services:
       --bind-all
       --live-buffer 30
       --upload-limit 1
+      --cache-auto 1
+      --cache-limit 10
 
   acestream-api:
     image: acestream-api

@@ -17,6 +17,7 @@ services:
       --max-download-speed 0
       --cache-auto 1
       --cache-max-bytes 10737418240
+      --live-buffer 30
 
   acestream-api:
     image: acestream-api

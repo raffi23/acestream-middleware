@@ -1,4 +1,5 @@
 import { ChannelSearchResult } from "../types";
+import { collectLiveEventChannels } from "./livetv-scrape";
 import { generateM3U8, saveM3U8ToFile } from "./m3u8";
 import { searchAceChannels } from "./search-api";
 import { wait } from "./utils";
@@ -26,6 +27,11 @@ const collectChannels = async () => {
         category: query,
       });
     }
+  }
+
+  const liveEventChannels = await collectLiveEventChannels();
+  for (const liveEventChannel of liveEventChannels) {
+    channels.set(liveEventChannel.infohash, liveEventChannel);
   }
 
   return channels;

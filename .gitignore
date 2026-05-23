@@ -13,6 +13,7 @@ node_modules
 # debug
 yarn-debug.log*
 yarn-error.log*
+coverage/
 
 .env*
 

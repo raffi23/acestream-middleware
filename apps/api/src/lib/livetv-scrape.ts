@@ -37,7 +37,7 @@ const extractLiveEvents = (html: string): LiveEvent[] => {
 
   // Each event is an <a class="live" href="/enx/eventinfo/..."> followed by a
   // sibling <a> containing live.gif — that sibling signals the event is on air.
-  $('a.live[href^="/enx/eventinfo/"]').each((_index, element) => {
+  $('#aul a.live[href^="/enx/eventinfo/"]').each((_index, element) => {
     const anchor = $(element);
     const eventPath = anchor.attr("href");
     if (!eventPath) return;

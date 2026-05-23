@@ -37,8 +37,12 @@ export const generateM3U8 = (
 ) => {
   const categories = groupByCategory(channels);
 
+  const sortedCategories = [...categories.entries()].sort(([first], [second]) =>
+    first.localeCompare(second),
+  );
+
   let m3u8 = "#EXTM3U\n";
-  for (const [category, categoryChannels] of categories.entries()) {
+  for (const [category, categoryChannels] of sortedCategories) {
     const sortedChannels = categoryChannels.sort((first, second) =>
       first.name.localeCompare(second.name),
     );

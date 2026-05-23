@@ -9,7 +9,7 @@ const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 const LIVETV_BASE_URL = process.env.LIVETV_BASE_URL || "https://livetv.sx";
 const LIVETV_LIST_PATH = "/enx/allupcoming/";
 const LIVETV_DETAIL_DELAY_MS =
-  Number(process.env.LIVETV_DETAIL_DELAY_MS) || 1000;
+  Number(process.env.LIVETV_DETAIL_DELAY_MS) || 200;
 const REQUEST_TIMEOUT_MS = 20_000;
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
@@ -56,7 +56,10 @@ const extractLiveEvents = (html: string): LiveEvent[] => {
       .find('img[src*="/icons/"]')
       .first()
       .attr("alt");
-    const category = iconAlt ?? "Other";
+    // alt format is "Sport. Country. League" — take only the sport name
+    // "~" prefix sorts all livetv categories after the search-query categories
+    const sportName = iconAlt?.split(".")[0]?.trim() ?? "Other";
+    const category = `~${sportName}`;
 
     events.set(eventPath, { eventPath, name, category });
   });

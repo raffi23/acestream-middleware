@@ -20,9 +20,9 @@ app.use("/search", searchRouter);
 app.use(express.static(path.join(__dirname, "public")));
 app.use(error_middleware);
 
-cron.schedule("*/15 * * * *", generateAndSaveM3U8);
-
-generateAndSaveM3U8();
+generateAndSaveM3U8().then(() => {
+  cron.schedule("*/15 * * * *", generateAndSaveM3U8);
+});
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 6877;
 const HOST = process.env.HOST || "0.0.0.0";

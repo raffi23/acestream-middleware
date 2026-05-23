@@ -1,7 +1,10 @@
 import axios, { AxiosError } from "axios";
 import * as cheerio from "cheerio";
+import https from "https";
 import { ChannelSearchResult } from "../types";
 import { wait } from "./utils";
+
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const LIVETV_BASE_URL = process.env.LIVETV_BASE_URL || "https://livetv.sx";
 const LIVETV_LIST_PATH = "/enx/allupcoming/";
@@ -23,6 +26,7 @@ const fetchHtml = async (url: string) => {
     timeout: REQUEST_TIMEOUT_MS,
     responseType: "text",
     headers: { "User-Agent": USER_AGENT, Accept: "text/html" },
+    httpsAgent,
   });
   return data;
 };

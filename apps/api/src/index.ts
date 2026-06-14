@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(error_middleware);
 
 generateAndSaveM3U8().then(() => {
-  cron.schedule("1,16,31,46 * * * *", generateAndSaveM3U8);
+  cron.schedule("10,25,40,55 * * * *", generateAndSaveM3U8);
 });
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 6877;

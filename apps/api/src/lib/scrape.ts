@@ -5,7 +5,13 @@ import { loadSearchAceCache, saveSearchAceCache } from "./search-cache";
 import { searchAceChannels } from "./search-api";
 import { wait } from "./utils";
 
-const LOCAL_STREAM_BASE_URL = process.env.LOCAL_STREAM_BASE_URL || "";
+const LOCAL_ENGINE_IP = process.env.LOCAL_ENGINE_IP || "";
+const LOCAL_ENGINE_PORT = process.env.LOCAL_ENGINE_PORT || "";
+const LOCAL_STREAM_BASE_URL =
+  process.env.LOCAL_STREAM_BASE_URL ||
+  (LOCAL_ENGINE_IP && LOCAL_ENGINE_PORT
+    ? `http://${LOCAL_ENGINE_IP}:${LOCAL_ENGINE_PORT}/ace/getstream`
+    : "");
 const REMOTE_STREAM_BASE_URL = process.env.REMOTE_STREAM_BASE_URL || "";
 const REMOTE_STREAM_TOKEN = process.env.REMOTE_STREAM_TOKEN || "";
 const SEARCH_DELAY_MS = Number(process.env.SEARCH_DELAY_MS) || 1500;

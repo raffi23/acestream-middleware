@@ -1,6 +1,7 @@
 import { ChannelSearchResult } from "../types";
 import { collectLiveEventChannels } from "./livetv-scrape";
 import { generateM3U8, saveM3U8ToFile } from "./m3u8";
+import { loadSearchAceCache, saveSearchAceCache } from "./search-cache";
 import { searchAceChannels } from "./search-api";
 import { wait } from "./utils";
 
@@ -9,11 +10,15 @@ const REMOTE_STREAM_BASE_URL = process.env.REMOTE_STREAM_BASE_URL || "";
 const REMOTE_STREAM_TOKEN = process.env.REMOTE_STREAM_TOKEN || "";
 const SEARCH_DELAY_MS = Number(process.env.SEARCH_DELAY_MS) || 1500;
 
-const QUERIES: string[] = ["bein", "[uk]", "[us]", "itv"];
+const QUERIES: string[] = ["sport"];
+
+// Search-ace results are a catalogue and should survive a later refresh when
+// the upstream search is incomplete or temporarily unavailable. LiveTV
+// results are deliberately rebuilt on every run because they represent the
+// current set of live events.
+const searchAceCache = loadSearchAceCache();
 
 const collectChannels = async () => {
-  const channels = new Map<string, ChannelSearchResult>();
-
   for (const [queryIndex, query] of QUERIES.entries()) {
     if (queryIndex > 0) await wait(SEARCH_DELAY_MS);
 
@@ -21,19 +26,29 @@ const collectChannels = async () => {
     console.log(`Found ${results.length} streams for query: ${query}`);
 
     for (const result of results) {
-      channels.set(result.infohash, {
+      searchAceCache.set(result.infohash, {
         name: result.name,
         infohash: result.infohash,
         category: query,
       });
     }
+
+    saveSearchAceCache(searchAceCache);
+  }
+
+  // Use source-specific keys so a LiveTV event with the same infohash does
+  // not replace a search result in the generated playlist.
+  const channels = new Map<string, ChannelSearchResult>();
+  for (const [infohash, searchResult] of searchAceCache) {
+    channels.set(`search-ace:${infohash}`, searchResult);
   }
 
   const liveEventChannels = await collectLiveEventChannels();
   for (const liveEventChannel of liveEventChannels) {
-    channels.set(liveEventChannel.infohash, liveEventChannel);
+    channels.set(`livetv:${liveEventChannel.infohash}`, liveEventChannel);
   }
 
+  console.log(`search-ace: retaining ${searchAceCache.size} streams`);
   return channels;
 };
 

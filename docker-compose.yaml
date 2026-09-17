@@ -23,8 +23,13 @@ services:
     container_name: acestream-api
     ports:
       - "6877:6877"
+    volumes:
+      - acestream-api-public:/app/dist/src/public
     depends_on:
       - acestream
     restart: unless-stopped
     env_file:
       - .env
+
+volumes:
+  acestream-api-public:

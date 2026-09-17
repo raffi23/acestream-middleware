@@ -42,8 +42,10 @@ const collectChannels = async () => {
     saveSearchAceCache(searchAceCache);
   }
 
-  // Use source-specific keys so a LiveTV event with the same infohash does
-  // not replace a search result in the generated playlist.
+  // Use source-specific keys so a LiveTV event cannot replace a Search-Ace
+  // result. If both sources expose the same stream, keep the Search-Ace
+  // entry only so IPTV clients that deduplicate identical URLs retain its
+  // useful channel name.
   const channels = new Map<string, ChannelSearchResult>();
   for (const [infohash, searchResult] of searchAceCache) {
     channels.set(`search-ace:${infohash}`, searchResult);
@@ -51,6 +53,7 @@ const collectChannels = async () => {
 
   const liveEventChannels = await collectLiveEventChannels();
   for (const liveEventChannel of liveEventChannels) {
+    if (channels.has(`search-ace:${liveEventChannel.infohash}`)) continue;
     channels.set(`livetv:${liveEventChannel.infohash}`, liveEventChannel);
   }
 

@@ -185,12 +185,20 @@ const resolveMatch = (
     );
   });
 
+  const canonicalCandidates = channels.filter(
+    (channel) =>
+      normalize(channel.name) === exactKey ||
+      normalizedBaseName(channel.name) === baseKey,
+  );
+
   const countryCandidates = requestedCountry
     ? candidates.filter((candidate) => candidate.country === requestedCountry)
     : [];
-  if (requestedCountry && countryCandidates.length === 0) return {};
-
-  const narrowed = countryCandidates.length > 0 ? countryCandidates : candidates;
+  const narrowed = requestedCountry
+    ? countryCandidates.length > 0
+      ? countryCandidates
+      : canonicalCandidates
+    : candidates;
 
   const withLogos = narrowed
     .map((channel) => ({ channel, logo: preferredLogo(logosByChannel.get(channel.id) || []) }))
@@ -199,7 +207,9 @@ const resolveMatch = (
   if (withLogos.length === 0) return {};
 
   let selected = withLogos[0];
-  if (countryCandidates.length === 0) {
+  const usingCountryAgnosticFallback =
+    Boolean(requestedCountry) && countryCandidates.length === 0;
+  if (!requestedCountry || usingCountryAgnosticFallback) {
     const logoCounts = new Map<string, typeof withLogos>();
     for (const candidate of withLogos) {
       const group = logoCounts.get(candidate.logo) || [];
@@ -227,7 +237,10 @@ const resolveMatch = (
 
   if (!selected) return {};
 
-  const hasConfidentId = countryCandidates.length === 1 || candidates.length === 1;
+  const hasConfidentId =
+    countryCandidates.length === 1 ||
+    canonicalCandidates.length === 1 ||
+    candidates.length === 1;
   return {
     ...(hasConfidentId ? { tvgId: selected.channel.id } : {}),
     logo: selected.logo,

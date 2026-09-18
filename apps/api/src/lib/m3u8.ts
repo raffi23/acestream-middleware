@@ -47,9 +47,18 @@ export const generateM3U8 = (
       first.name.localeCompare(second.name),
     );
 
-    for (const { name, infohash } of sortedChannels) {
+    for (const { name, infohash, tvgId, logo } of sortedChannels) {
       const streamUrl = buildStreamUrl(baseUrl, infohash, token);
-      m3u8 += `#EXTINF:-1 tvg-name="${name}" tvg-type="live" group-title="${category}",${name}\n${streamUrl}\n`;
+      const attributes = [
+        tvgId && `tvg-id="${tvgId}"`,
+        `tvg-name="${name}"`,
+        logo && `tvg-logo="${logo}"`,
+        `tvg-type="live"`,
+        `group-title="${category}"`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      m3u8 += `#EXTINF:-1 ${attributes},${name}\n${streamUrl}\n`;
     }
   }
 

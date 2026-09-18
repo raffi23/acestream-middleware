@@ -10,4 +10,6 @@ export type ChannelSearchResult = {
   name: string;
   infohash: string;
   category?: string;
+  tvgId?: string;
+  logo?: string;
 };

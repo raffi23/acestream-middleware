@@ -42,8 +42,10 @@ RUN yarn install --frozen-lockfile
 
 COPY . .
 RUN mkdir -p /app/dist/src/public
+COPY relay-entrypoint.sh /usr/local/bin/relay-entrypoint.sh
+RUN chmod +x /usr/local/bin/relay-entrypoint.sh
 
 ENV NTV_OUTPUT_DIR=/app/dist/src/public
 ENV PUPPETEER_NO_SANDBOX=true
 
-CMD ["xvfb-run", "-a", "--server-args=-screen 0 1280x720x24", "yarn", "relay:ntv"]
+CMD ["/usr/local/bin/relay-entrypoint.sh"]

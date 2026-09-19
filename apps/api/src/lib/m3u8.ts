@@ -5,13 +5,6 @@ import { ChannelSearchResult } from "../types";
 type PlaylistOptions = {
   baseUrl: string;
   token?: string;
-  externalStreams?: ExternalPlaylistStream[];
-};
-
-export type ExternalPlaylistStream = {
-  name: string;
-  url: string;
-  category?: string;
 };
 
 export const buildStreamUrl = (
@@ -40,7 +33,7 @@ const groupByCategory = (channels: Map<string, ChannelSearchResult>) => {
 
 export const generateM3U8 = (
   channels: Map<string, ChannelSearchResult>,
-  { baseUrl, token, externalStreams = [] }: PlaylistOptions,
+  { baseUrl, token }: PlaylistOptions,
 ) => {
   const categories = groupByCategory(channels);
 
@@ -67,17 +60,6 @@ export const generateM3U8 = (
         .join(" ");
       m3u8 += `#EXTINF:-1 ${attributes},${name}\n${streamUrl}\n`;
     }
-  }
-
-  for (const { name, url, category = "Other" } of externalStreams) {
-    const attributes = [
-      `tvg-name="${name}"`,
-      `tvg-type="live"`,
-      `group-title="${category}"`,
-    ]
-      .filter(Boolean)
-      .join(" ");
-    m3u8 += `#EXTINF:-1 ${attributes},${name}\n${url}\n`;
   }
 
   return m3u8;

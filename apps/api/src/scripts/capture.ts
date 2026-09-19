@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { spawn, type ChildProcess } from "child_process";
 import fs from "fs";
@@ -10,14 +11,12 @@ import puppeteer, {
   type Page,
 } from "puppeteer";
 
-const CHANNEL_IDS = ["91", "92", "93", "94", "95", "96", "97", "98", "99"];
-const CHANNEL_ID_SET = new Set(CHANNEL_IDS);
 const NAVIGATION_TIMEOUT_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 60_000;
 const IDLE_TIMEOUT_MS = 30_000;
-const INTERNAL_PORT = Number(process.env.NTV_INTERNAL_PORT) || 8787;
+const INTERNAL_PORT = Number(process.env.BROWSER_INTERNAL_PORT) || 8787;
 const OUTPUT_DIR = path.resolve(
-  process.env.NTV_OUTPUT_DIR || path.join(process.cwd(), "dist/src/public"),
+  process.env.BROWSER_OUTPUT_DIR || path.join(process.cwd(), "dist/src/public"),
 );
 const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
 
@@ -26,6 +25,7 @@ type CapturedStream = {
   page: Page;
   m3u8Url: string;
   headers: Record<string, string>;
+  filePrefix: string;
 };
 
 type ActiveStream = CapturedStream & {
@@ -35,6 +35,7 @@ type ActiveStream = CapturedStream & {
 
 const activeStreams = new Map<string, Promise<ActiveStream>>();
 const idleTimers = new Map<string, NodeJS.Timeout>();
+const browserSessions = new Map<string, { id: string; url: string }>();
 let browserPromise: Promise<Browser> | undefined;
 
 const clearIdleTimer = (channelId: string) => {
@@ -43,25 +44,25 @@ const clearIdleTimer = (channelId: string) => {
   idleTimers.delete(channelId);
 };
 
-const stopIdleStream = async (channelId: string) => {
-  const streamPromise = activeStreams.get(channelId);
+const stopIdleStream = async (streamId: string) => {
+  const streamPromise = activeStreams.get(streamId);
   if (!streamPromise) return;
 
   const stream = await streamPromise.catch(() => null);
-  if (!stream || activeStreams.get(channelId) !== streamPromise) return;
+  if (!stream || activeStreams.get(streamId) !== streamPromise) return;
 
-  activeStreams.delete(channelId);
-  clearIdleTimer(channelId);
+  activeStreams.delete(streamId);
+  clearIdleTimer(streamId);
   if (!stream.ffmpeg.killed) stream.ffmpeg.kill("SIGTERM");
   await stream.page.close().catch(() => undefined);
-  console.log(`[ntv-${channelId}] Stopped after ${IDLE_TIMEOUT_MS / 1000}s idle.`);
+  console.log(`[${streamId}] Stopped after ${IDLE_TIMEOUT_MS / 1000}s idle.`);
 };
 
-const touchStream = (channelId: string) => {
-  clearIdleTimer(channelId);
+const touchStream = (streamId: string) => {
+  clearIdleTimer(streamId);
   idleTimers.set(
-    channelId,
-    setTimeout(() => void stopIdleStream(channelId), IDLE_TIMEOUT_MS),
+    streamId,
+    setTimeout(() => void stopIdleStream(streamId), IDLE_TIMEOUT_MS),
   );
 };
 
@@ -83,9 +84,10 @@ const getBrowser = () => {
 
 const captureM3U8 = async (
   browser: Browser,
-  channelId: string,
+  streamId: string,
+  targetUrl: string,
+  filePrefix: string,
 ): Promise<CapturedStream> => {
-  const targetUrl = `https://ntv.cx/channel/phoenix/${channelId}`;
   const page = await browser.newPage();
 
   try {
@@ -93,7 +95,7 @@ const captureM3U8 = async (
       const url = response.url();
       if (response.status() >= 400 && /embed|stream|player|m3u8/i.test(url)) {
         console.warn(
-          `[ntv-${channelId}] Player response ${response.status()}: ${url}`,
+          `[${filePrefix}] Player response ${response.status()}: ${url}`,
         );
       }
     });
@@ -131,11 +133,11 @@ const captureM3U8 = async (
       headers.cookie = requestHeaders.cookie || cookieHeader;
     }
 
-    console.log(`[ntv-${channelId}] Captured M3U8 request.`);
-    return { channelId, page, m3u8Url, headers };
+    console.log(`[${filePrefix}] Captured M3U8 request.`);
+    return { channelId: streamId, page, m3u8Url, headers, filePrefix };
   } catch (error) {
     console.error(
-      `[ntv-${channelId}] Frames discovered before failure:\n` +
+      `[${filePrefix}] Frames discovered before failure:\n` +
         (page.frames().map((frame: Frame) => frame.url()).filter(Boolean).join("\n") ||
           "none"),
     );
@@ -154,10 +156,10 @@ const startFfmpegRelay = (
 ): { process: ChildProcess; outputPath: string } => {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-  const outputPath = path.join(OUTPUT_DIR, `ntv-${stream.channelId}.m3u8`);
+  const outputPath = path.join(OUTPUT_DIR, `${stream.filePrefix}.m3u8`);
   const segmentPattern = path.join(
     OUTPUT_DIR,
-    `ntv-${stream.channelId}-%06d.ts`,
+    `${stream.filePrefix}-%06d.ts`,
   );
   const ffmpeg = spawn(
     FFMPEG_BIN,
@@ -191,14 +193,14 @@ const startFfmpegRelay = (
 
   ffmpeg.stderr?.on("data", (chunk: Buffer) => {
     const message = chunk.toString().trim();
-    if (message) console.error(`[ntv-${stream.channelId}] ${message}`);
+    if (message) console.error(`[${stream.filePrefix}] ${message}`);
   });
   ffmpeg.once("error", (error) => {
-    console.error(`[ntv-${stream.channelId}] FFmpeg failed to start:`, error);
+    console.error(`[${stream.filePrefix}] FFmpeg failed to start:`, error);
   });
   ffmpeg.once("close", (code, signal) => {
     console.warn(
-      `[ntv-${stream.channelId}] FFmpeg stopped (code=${code}, signal=${signal})`,
+      `[${stream.filePrefix}] FFmpeg stopped (code=${code}, signal=${signal})`,
     );
   });
 
@@ -218,43 +220,75 @@ const waitForFile = async (filePath: string) => {
   throw new Error(`Timed out waiting for ${filePath}`);
 };
 
-const ensureStream = async (channelId: string) => {
-  if (!CHANNEL_ID_SET.has(channelId)) {
-    throw new Error(`Unsupported NTV channel: ${channelId}`);
+const validateBrowserUrl = (value: unknown) => {
+  if (typeof value !== "string") throw new Error("url is required");
+  const url = new URL(value);
+  if (!(["http:", "https:"] as string[]).includes(url.protocol)) {
+    throw new Error("url must use http or https");
   }
+  if (["localhost", "127.0.0.1", "::1"].includes(url.hostname)) {
+    throw new Error("local URLs are not allowed");
+  }
+  return url.toString();
+};
 
-  const existing = activeStreams.get(channelId);
+const readJsonBody = async (req: IncomingMessage) => {
+  let body = "";
+  for await (const chunk of req) {
+    body += chunk.toString();
+    if (body.length > 100_000) throw new Error("Request body too large");
+  }
+  return JSON.parse(body || "{}") as Record<string, unknown>;
+};
+
+const sendJson = (res: ServerResponse, status: number, value: unknown) => {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(value));
+};
+
+const ensureBrowserStream = async (sessionId: string) => {
+  const session = browserSessions.get(sessionId);
+  if (!session) throw new Error("Unknown browser stream session");
+
+  const streamKey = `browser-${sessionId}`;
+  const existing = activeStreams.get(streamKey);
   if (existing) return existing;
 
   let streamPromise: Promise<ActiveStream>;
   streamPromise = (async () => {
-    const stream = await captureM3U8(await getBrowser(), channelId);
-    const relay = startFfmpegRelay(stream);
+    const captured = await captureM3U8(
+      await getBrowser(),
+      streamKey,
+      session.url,
+      streamKey,
+    );
+    const relay = startFfmpegRelay(captured);
     const activeStream: ActiveStream = {
-      ...stream,
+      ...captured,
       ffmpeg: relay.process,
       outputPath: relay.outputPath,
     };
 
     relay.process.once("close", () => {
-      if (activeStreams.get(channelId) === streamPromise) {
-        activeStreams.delete(channelId);
+      if (activeStreams.get(streamKey) === streamPromise) {
+        activeStreams.delete(streamKey);
       }
-      clearIdleTimer(channelId);
+      clearIdleTimer(streamKey);
       void activeStream.page.close().catch(() => undefined);
     });
 
     await waitForFile(relay.outputPath);
-    console.log(`[ntv-${channelId}] Lazy relay is ready.`);
+    console.log(`[${streamKey}] Lazy relay is ready.`);
     return activeStream;
   })();
 
-  activeStreams.set(channelId, streamPromise);
+  activeStreams.set(streamKey, streamPromise);
   try {
     return await streamPromise;
   } catch (error) {
-    if (activeStreams.get(channelId) === streamPromise) {
-      activeStreams.delete(channelId);
+    if (activeStreams.get(streamKey) === streamPromise) {
+      activeStreams.delete(streamKey);
     }
     throw error;
   }
@@ -284,49 +318,65 @@ const serveFile = (
 };
 
 const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
-  const requestUrl = new URL(req.url || "/", "http://ntv-relay");
-  console.log(`[ntv-relay] ${req.method || "GET"} ${requestUrl.pathname}`);
-  const manifestMatch = requestUrl.pathname.match(/^\/ntv\/(\d+)\.m3u8$/);
-  const segmentMatch = requestUrl.pathname.match(
-    /^\/ntv\/ntv-(\d+)-\d+\.ts$/,
-  );
+  const requestUrl = new URL(req.url || "/", "http://browser-relay");
+  console.log(`[browser-relay] ${req.method || "GET"} ${requestUrl.pathname}`);
 
-  if (manifestMatch) {
-    const channelId = manifestMatch[1];
-    if (!channelId) return sendText(res, 400, "Invalid channel");
-
+  if (req.method === "POST" && requestUrl.pathname === "/sessions") {
     try {
-      await ensureStream(channelId);
-      touchStream(channelId);
-      serveFile(
-        res,
-        path.join(OUTPUT_DIR, `ntv-${channelId}.m3u8`),
-        "application/vnd.apple.mpegurl",
-      );
+      const body = await readJsonBody(req);
+      const session = {
+        id: randomUUID(),
+        url: validateBrowserUrl(body.url),
+      };
+      browserSessions.set(session.id, session);
+      sendJson(res, 201, session);
     } catch (error) {
-      console.error(`[ntv-${channelId}] Lazy start failed:`, error);
-      sendText(res, 502, "Unable to start NTV stream");
+      sendJson(res, 400, {
+        error: error instanceof Error ? error.message : "Invalid stream URL",
+      });
     }
     return;
   }
 
-  if (segmentMatch) {
-    const channelId = segmentMatch[1];
-    if (!channelId || !CHANNEL_ID_SET.has(channelId)) {
-      return sendText(res, 404, "HLS segment not found");
-    }
+  const browserManifestMatch = requestUrl.pathname.match(
+    /^\/browser\/([a-f0-9-]+)\.m3u8$/i,
+  );
+  const browserSegmentMatch = requestUrl.pathname.match(
+    /^\/browser\/browser-([a-f0-9-]+)-\d+\.ts$/i,
+  );
 
+  if (browserManifestMatch?.[1]) {
+    const sessionId = browserManifestMatch[1];
+    const streamKey = `browser-${sessionId}`;
     try {
-      await ensureStream(channelId);
-      touchStream(channelId);
+      await ensureBrowserStream(sessionId);
+      touchStream(streamKey);
+      serveFile(
+        res,
+        path.join(OUTPUT_DIR, `${streamKey}.m3u8`),
+        "application/vnd.apple.mpegurl",
+      );
+    } catch (error) {
+      console.error(`[${streamKey}] Lazy start failed:`, error);
+      sendText(res, 502, "Unable to start browser stream");
+    }
+    return;
+  }
+
+  if (browserSegmentMatch?.[1]) {
+    const sessionId = browserSegmentMatch[1];
+    const streamKey = `browser-${sessionId}`;
+    try {
+      await ensureBrowserStream(sessionId);
+      touchStream(streamKey);
       serveFile(
         res,
         path.join(OUTPUT_DIR, path.basename(requestUrl.pathname)),
         "video/mp2t",
       );
     } catch (error) {
-      console.error(`[ntv-${channelId}] Segment relay failed:`, error);
-      sendText(res, 502, "Unable to serve NTV segment");
+      console.error(`[${streamKey}] Segment relay failed:`, error);
+      sendText(res, 502, "Unable to serve browser segment");
     }
     return;
   }
@@ -347,7 +397,7 @@ const run = async () => {
       if (stream && !stream.ffmpeg.killed) stream.ffmpeg.kill("SIGTERM");
       await stream?.page.close().catch(() => undefined);
     }
-    for (const channelId of idleTimers.keys()) clearIdleTimer(channelId);
+    for (const streamId of idleTimers.keys()) clearIdleTimer(streamId);
     const browser = await browserPromise?.catch(() => undefined);
     await browser?.close();
   };
@@ -357,12 +407,12 @@ const run = async () => {
 
   server.listen(INTERNAL_PORT, "0.0.0.0", () => {
     console.log(
-      `[ntv] Lazy relay listening on internal port ${INTERNAL_PORT}; configured channels: ${CHANNEL_IDS.join(", ")}`,
+      `[browser-relay] Lazy relay listening on internal port ${INTERNAL_PORT}`,
     );
   });
 };
 
 run().catch((error: unknown) => {
-  console.error("NTV relay failed:", error);
+  console.error("Browser relay failed:", error);
   process.exitCode = 1;
 });

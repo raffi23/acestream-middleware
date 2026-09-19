@@ -31,12 +31,12 @@ services:
     env_file:
       - .env
 
-  ntv-relay:
-    image: acestream-ntv-relay
+  browser-relay:
+    image: browser-stream-relay
     build:
       context: ./apps/api
       dockerfile: Dockerfile.relay
-    container_name: acestream-ntv-relay
+    container_name: browser-stream-relay
     volumes:
       - acestream-api-public:/app/dist/src/public
     depends_on:

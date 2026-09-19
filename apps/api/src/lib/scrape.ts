@@ -14,7 +14,6 @@ const LOCAL_STREAM_BASE_URL =
 const REMOTE_STREAM_BASE_URL = process.env.REMOTE_STREAM_BASE_URL || "";
 const REMOTE_STREAM_TOKEN = process.env.REMOTE_STREAM_TOKEN || "";
 const SEARCH_DELAY_MS = Number(process.env.SEARCH_DELAY_MS) || 1500;
-const NTV_CHANNEL_IDS = ["91", "92", "93", "94", "95", "96", "97", "98", "99"];
 
 const QUERIES: string[] = ["sport", "sky"];
 
@@ -56,17 +55,9 @@ export const generateAndSaveM3U8 = async () => {
 
   const channels = await collectChannels();
   console.log(`Total streams: ${channels.size}`);
-  const externalStreams = NTV_CHANNEL_IDS.map((channelId) => ({
-    name: `BeIN Sports ${channelId[1]} [AR]`,
-    url: `ntv/${channelId}.m3u8`,
-    category: "BeIN",
-  }));
 
   if (LOCAL_STREAM_BASE_URL) {
-    const playlist = generateM3U8(channels, {
-      baseUrl: LOCAL_STREAM_BASE_URL,
-      externalStreams,
-    });
+    const playlist = generateM3U8(channels, { baseUrl: LOCAL_STREAM_BASE_URL });
     saveM3U8ToFile(playlist, "live.m3u8");
   } else {
     console.warn("LOCAL_STREAM_BASE_URL not set — skipping live.m3u8");
@@ -76,7 +67,6 @@ export const generateAndSaveM3U8 = async () => {
     const playlist = generateM3U8(channels, {
       baseUrl: REMOTE_STREAM_BASE_URL,
       token: REMOTE_STREAM_TOKEN || undefined,
-      externalStreams,
     });
     saveM3U8ToFile(playlist, "live-remote.m3u8");
   } else {

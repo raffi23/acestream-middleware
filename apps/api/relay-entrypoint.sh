@@ -12,4 +12,4 @@ trap cleanup TERM INT EXIT
 export DISPLAY=:99
 
 sleep 1
-exec yarn relay:ntv
+exec yarn relay:browser

@@ -28,6 +28,7 @@ RUN apt-get update \
       libxfixes3 \
       libxkbcommon0 \
       libxrandr2 \
+      unzip \
       xauth \
       xdg-utils \
       xvfb \
@@ -39,6 +40,8 @@ WORKDIR /app
 
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
+ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
+RUN npx puppeteer browsers install chrome
 
 COPY . .
 RUN mkdir -p /app/dist/src/public

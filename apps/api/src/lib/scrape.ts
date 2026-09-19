@@ -1,5 +1,4 @@
 import { ChannelSearchResult } from "../types";
-import { collectLiveEventChannels } from "./livetv-scrape";
 import { generateM3U8, saveM3U8ToFile } from "./m3u8";
 import { addAutomaticLogos } from "./logo-resolver";
 import { loadSearchAceCache, saveSearchAceCache } from "./search-cache";
@@ -44,19 +43,9 @@ const collectChannels = async () => {
     saveSearchAceCache(searchAceCache);
   }
 
-  // Use source-specific keys so a LiveTV event cannot replace a Search-Ace
-  // result. If both sources expose the same stream, keep the Search-Ace
-  // entry only so IPTV clients that deduplicate identical URLs retain its
-  // useful channel name.
   const channels = new Map<string, ChannelSearchResult>();
   for (const [infohash, searchResult] of searchAceCache) {
     channels.set(`search-ace:${infohash}`, searchResult);
-  }
-
-  const liveEventChannels = await collectLiveEventChannels();
-  for (const liveEventChannel of liveEventChannels) {
-    if (channels.has(`search-ace:${liveEventChannel.infohash}`)) continue;
-    channels.set(`livetv:${liveEventChannel.infohash}`, liveEventChannel);
   }
 
   console.log(`search-ace: retaining ${searchAceCache.size} streams`);

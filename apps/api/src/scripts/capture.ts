@@ -14,6 +14,7 @@ const CHANNEL_IDS = ["91", "92", "93", "94", "95", "96", "97", "98", "99"];
 const CHANNEL_ID_SET = new Set(CHANNEL_IDS);
 const NAVIGATION_TIMEOUT_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 60_000;
+const IDLE_TIMEOUT_MS = 30_000;
 const INTERNAL_PORT = Number(process.env.NTV_INTERNAL_PORT) || 8787;
 const OUTPUT_DIR = path.resolve(
   process.env.NTV_OUTPUT_DIR || path.join(process.cwd(), "dist/src/public"),
@@ -33,7 +34,36 @@ type ActiveStream = CapturedStream & {
 };
 
 const activeStreams = new Map<string, Promise<ActiveStream>>();
+const idleTimers = new Map<string, NodeJS.Timeout>();
 let browserPromise: Promise<Browser> | undefined;
+
+const clearIdleTimer = (channelId: string) => {
+  const timer = idleTimers.get(channelId);
+  if (timer) clearTimeout(timer);
+  idleTimers.delete(channelId);
+};
+
+const stopIdleStream = async (channelId: string) => {
+  const streamPromise = activeStreams.get(channelId);
+  if (!streamPromise) return;
+
+  const stream = await streamPromise.catch(() => null);
+  if (!stream || activeStreams.get(channelId) !== streamPromise) return;
+
+  activeStreams.delete(channelId);
+  clearIdleTimer(channelId);
+  if (!stream.ffmpeg.killed) stream.ffmpeg.kill("SIGTERM");
+  await stream.page.close().catch(() => undefined);
+  console.log(`[ntv-${channelId}] Stopped after ${IDLE_TIMEOUT_MS / 1000}s idle.`);
+};
+
+const touchStream = (channelId: string) => {
+  clearIdleTimer(channelId);
+  idleTimers.set(
+    channelId,
+    setTimeout(() => void stopIdleStream(channelId), IDLE_TIMEOUT_MS),
+  );
+};
 
 const getBrowser = () => {
   if (!browserPromise) {
@@ -210,6 +240,7 @@ const ensureStream = async (channelId: string) => {
       if (activeStreams.get(channelId) === streamPromise) {
         activeStreams.delete(channelId);
       }
+      clearIdleTimer(channelId);
       void activeStream.page.close().catch(() => undefined);
     });
 
@@ -266,6 +297,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
 
     try {
       await ensureStream(channelId);
+      touchStream(channelId);
       serveFile(
         res,
         path.join(OUTPUT_DIR, `ntv-${channelId}.m3u8`),
@@ -284,11 +316,18 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       return sendText(res, 404, "HLS segment not found");
     }
 
-    serveFile(
-      res,
-      path.join(OUTPUT_DIR, path.basename(requestUrl.pathname)),
-      "video/mp2t",
-    );
+    try {
+      await ensureStream(channelId);
+      touchStream(channelId);
+      serveFile(
+        res,
+        path.join(OUTPUT_DIR, path.basename(requestUrl.pathname)),
+        "video/mp2t",
+      );
+    } catch (error) {
+      console.error(`[ntv-${channelId}] Segment relay failed:`, error);
+      sendText(res, 502, "Unable to serve NTV segment");
+    }
     return;
   }
 
@@ -308,6 +347,7 @@ const run = async () => {
       if (stream && !stream.ffmpeg.killed) stream.ffmpeg.kill("SIGTERM");
       await stream?.page.close().catch(() => undefined);
     }
+    for (const channelId of idleTimers.keys()) clearIdleTimer(channelId);
     const browser = await browserPromise?.catch(() => undefined);
     await browser?.close();
   };

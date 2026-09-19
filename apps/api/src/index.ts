@@ -8,9 +8,11 @@ import { error_middleware } from "./middleware/error-middleware";
 import searchRouter from "./routes/search-routes";
 import aceRouter from "./routes/stream-routes";
 import ntvRouter from "./routes/ntv-routes";
+import fs from "fs";
 import path from "path";
 
 const app = express();
+app.set("trust proxy", true);
 app.use(cors());
 app.use(json());
 app.use(cookieParser());
@@ -18,6 +20,25 @@ app.use(cookieParser());
 app.use("/ace", aceRouter);
 app.use("/search", searchRouter);
 app.use("/ntv", ntvRouter);
+
+app.get(["/live.m3u8", "/live-remote.m3u8"], (req, res, next) => {
+  const filename = path.basename(req.path);
+  const filePath = path.join(__dirname, "public", filename);
+
+  if (!fs.existsSync(filePath)) {
+    next();
+    return;
+  }
+
+  const forwardedProto = req.get("x-forwarded-proto") || req.protocol;
+  const forwardedHost = req.get("x-forwarded-host") || req.get("host");
+  const publicOrigin = `${forwardedProto}://${forwardedHost}`;
+  const playlist = fs
+    .readFileSync(filePath, "utf8")
+    .replace(/^ntv\/(\d+\.m3u8)$/gm, `${publicOrigin}/ntv/$1`);
+
+  res.type("application/vnd.apple.mpegurl").send(playlist);
+});
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(error_middleware);

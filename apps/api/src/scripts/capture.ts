@@ -254,6 +254,7 @@ const serveFile = (
 
 const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
   const requestUrl = new URL(req.url || "/", "http://ntv-relay");
+  console.log(`[ntv-relay] ${req.method || "GET"} ${requestUrl.pathname}`);
   const manifestMatch = requestUrl.pathname.match(/^\/ntv\/(\d+)\.m3u8$/);
   const segmentMatch = requestUrl.pathname.match(
     /^\/ntv\/ntv-(\d+)-\d+\.ts$/,

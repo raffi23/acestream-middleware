@@ -1,6 +1,5 @@
 import { ChannelSearchResult } from "../types";
 import { generateM3U8, saveM3U8ToFile } from "./m3u8";
-import { addAutomaticLogos } from "./logo-resolver";
 import { loadSearchAceCache, saveSearchAceCache } from "./search-cache";
 import { searchAceChannels } from "./search-api";
 import { wait } from "./utils";
@@ -55,7 +54,7 @@ const collectChannels = async () => {
 export const generateAndSaveM3U8 = async () => {
   console.log("Generating M3U8...");
 
-  const channels = await addAutomaticLogos(await collectChannels());
+  const channels = await collectChannels();
   console.log(`Total streams: ${channels.size}`);
   const externalStreams = NTV_CHANNEL_IDS.map((channelId) => ({
     name: `Phoenix ${channelId}`,

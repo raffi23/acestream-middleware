@@ -57,7 +57,7 @@ export const generateAndSaveM3U8 = async () => {
   const channels = await collectChannels();
   console.log(`Total streams: ${channels.size}`);
   const externalStreams = NTV_CHANNEL_IDS.map((channelId) => ({
-    name: `Phoenix ${channelId}`,
+    name: `BeIN Sports ${channelId} [AR]`,
     url: `ntv/${channelId}.m3u8`,
     category: "NTV",
   }));

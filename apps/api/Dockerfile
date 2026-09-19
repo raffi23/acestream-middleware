@@ -1,7 +1,4 @@
-FROM node:20-alpine AS base
-
-RUN apk update
-RUN apk add --no-cache libc6-compat
+FROM node:22-bookworm-slim AS base
 
 RUN corepack enable
 

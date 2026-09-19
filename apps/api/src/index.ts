@@ -7,6 +7,7 @@ import { generateAndSaveM3U8 } from "./lib/scrape";
 import { error_middleware } from "./middleware/error-middleware";
 import searchRouter from "./routes/search-routes";
 import aceRouter from "./routes/stream-routes";
+import ntvRouter from "./routes/ntv-routes";
 import path from "path";
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(cookieParser());
 
 app.use("/ace", aceRouter);
 app.use("/search", searchRouter);
+app.use("/ntv", ntvRouter);
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(error_middleware);

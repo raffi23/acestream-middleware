@@ -31,5 +31,17 @@ services:
     env_file:
       - .env
 
+  ntv-relay:
+    image: acestream-ntv-relay
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.relay
+    container_name: acestream-ntv-relay
+    volumes:
+      - acestream-api-public:/app/dist/src/public
+    depends_on:
+      - acestream-api
+    restart: unless-stopped
+
 volumes:
   acestream-api-public:

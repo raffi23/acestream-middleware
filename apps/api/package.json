@@ -4,6 +4,7 @@
   "main": "dist/src/index.js",
   "scripts": {
     "dev": "tsc-watch --onSuccess \"node ./dist/src/index.js\"",
+    "relay:ntv": "tsx src/scripts/capture.ts",
     "start": "tsc && node ./dist/src/index.js"
   },
   "dependencies": {
@@ -13,7 +14,8 @@
     "cors": "2.8.5",
     "dotenv": "17.0.0",
     "express": "5.1.0",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.2.1",
+    "puppeteer": "^25.11.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.9",

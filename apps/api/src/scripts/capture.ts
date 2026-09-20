@@ -13,6 +13,8 @@ import puppeteer, {
 const REQUEST_TIMEOUT_MS = 60_000;
 const IDLE_TIMEOUT_MS = 30_000;
 const M3U8_SELECTION_GRACE_MS = 2_000;
+const DEFAULT_SEGMENT_DURATION_SECONDS = 5;
+const MAX_SEGMENTS = 6;
 const INTERNAL_PORT = Number(process.env.BROWSER_INTERNAL_PORT) || 8787;
 const OUTPUT_DIR = path.resolve(
   process.env.BROWSER_OUTPUT_DIR || path.join(process.cwd(), "dist/src/public"),
@@ -21,11 +23,11 @@ const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
 
 type BrowserSession = { id: string; url: string };
 type MediaMode = "m3u8" | "segments";
-type Segment = { filename: string; duration: number };
+type Segment = { filename: string; duration: number; sequence: number };
 type SegmentState = {
   outputPath: string;
   segments: Segment[];
-  nextSequence: number;
+  firstSegmentReady: boolean;
   firstSegment: Promise<void>;
   resolveFirstSegment: () => void;
   rejectFirstSegment: (error: Error) => void;
@@ -49,7 +51,15 @@ const getBrowser = () => {
     browserPromise = puppeteer.launch({
       headless: false,
       acceptInsecureCerts: true,
-      args: ["--ignore-certificate-errors", "--no-sandbox", "--disable-setuid-sandbox"],
+      args: [
+        "--ignore-certificate-errors",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--autoplay-policy=no-user-gesture-required",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+      ],
     });
   }
   return browserPromise;
@@ -100,10 +110,15 @@ const cleanupFiles = (sessionId: string) => {
 };
 
 const writeSegmentPlaylist = (sessionId: string, state: SegmentState) => {
-  const firstSequence = state.nextSequence - state.segments.length;
+  const firstSequence = state.segments[0]?.sequence || 0;
   const targetDuration = Math.max(
     1,
-    Math.ceil(Math.max(...state.segments.map((segment) => segment.duration), 5)),
+    Math.ceil(
+      Math.max(
+        ...state.segments.map((segment) => segment.duration),
+        DEFAULT_SEGMENT_DURATION_SECONDS,
+      ),
+    ),
   );
   const playlist = [
     "#EXTM3U",
@@ -162,7 +177,7 @@ const createSegmentState = (sessionId: string): SegmentState => {
   return {
     outputPath: path.join(OUTPUT_DIR, `${outputPrefix(sessionId)}.m3u8`),
     segments: [],
-    nextSequence: 0,
+    firstSegmentReady: false,
     firstSegment,
     resolveFirstSegment,
     rejectFirstSegment,
@@ -175,6 +190,9 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
   let selectedMode: MediaMode | undefined;
   let m3u8Request: HTTPRequest | undefined;
   let m3u8SelectionTimer: NodeJS.Timeout | undefined;
+  let nextSegmentSequence = 0;
+  let firstSegmentRequest: HTTPRequest | undefined;
+  const segmentSequences = new Map<HTTPRequest, number>();
   let resolveFirstRequest!: (value: { mode: MediaMode; request: HTTPRequest }) => void;
   let rejectFirstRequest!: (error: Error) => void;
   const firstRequest = new Promise<{ mode: MediaMode; request: HTTPRequest }>((resolve, reject) => {
@@ -196,6 +214,12 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
 
   const onRequest = (request: HTTPRequest) => {
     const url = request.url().toLowerCase();
+    if (/\.ts(?:\?|$)/i.test(url)) {
+      if (!firstSegmentRequest) firstSegmentRequest = request;
+      segmentSequences.set(request, nextSegmentSequence);
+      nextSegmentSequence += 1;
+      if (!selectedMode) selectMode("segments", request);
+    }
     if (!m3u8Request && url.includes("m3u8")) m3u8Request = request;
   };
 
@@ -205,25 +229,50 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
     const isSuccessful = [200, 206].includes(response.status());
 
     if (/\.ts(?:\?|$)/i.test(responseUrl)) {
-      if (!isSuccessful) return;
+      if (!isSuccessful) {
+        if (response.request() === firstSegmentRequest) {
+          state.rejectFirstSegment(new Error(`First TS segment failed with HTTP ${response.status()}`));
+        }
+        return;
+      }
       if (selectedMode === "m3u8") return;
       try {
         const buffer = await response.buffer();
-        if (buffer[0] !== 0x47) return;
-        selectMode("segments", response.request());
+        if (buffer[0] !== 0x47) {
+          if (response.request() === firstSegmentRequest) {
+            state.rejectFirstSegment(new Error("First TS segment did not contain an MPEG-TS payload"));
+          }
+          return;
+        }
         if (selectedMode !== "segments") return;
+        const sequence = segmentSequences.get(response.request()) ?? nextSegmentSequence++;
         const durationMatch = responseUrl.match(/-(\d{5})\.ts(?:\?|$)/i);
-        const duration = durationMatch ? Number(durationMatch[1]) / 1000 : 5;
-        const filename = `${outputPrefix(session.id)}-${String(state.nextSequence).padStart(6, "0")}.ts`;
-        state.nextSequence += 1;
+        const encodedDuration = durationMatch ? Number(durationMatch[1]) / 1000 : NaN;
+        const duration = Number.isFinite(encodedDuration) && encodedDuration >= 1 && encodedDuration <= 30
+          ? encodedDuration
+          : DEFAULT_SEGMENT_DURATION_SECONDS;
+        const filename = `${outputPrefix(session.id)}-${String(sequence).padStart(6, "0")}.ts`;
+        const isFirstSegment = response.request() === firstSegmentRequest;
+        const shouldTrimWindow = state.firstSegmentReady;
         fs.writeFileSync(path.join(OUTPUT_DIR, filename), buffer);
-        state.segments.push({ filename, duration });
-        while (state.segments.length > 6) {
-          const removed = state.segments.shift();
-          if (removed) fs.rmSync(path.join(OUTPUT_DIR, removed.filename), { force: true });
+        const existingIndex = state.segments.findIndex((segment) => segment.sequence === sequence);
+        if (existingIndex >= 0) {
+          const existing = state.segments.splice(existingIndex, 1)[0];
+          if (existing) fs.rmSync(path.join(OUTPUT_DIR, existing.filename), { force: true });
+        }
+        state.segments.push({ filename, duration, sequence });
+        state.segments.sort((left, right) => left.sequence - right.sequence);
+        if (shouldTrimWindow) {
+          while (state.segments.length > MAX_SEGMENTS) {
+            const removed = state.segments.shift();
+            if (removed) fs.rmSync(path.join(OUTPUT_DIR, removed.filename), { force: true });
+          }
         }
         writeSegmentPlaylist(session.id, state);
-        state.resolveFirstSegment();
+        if (isFirstSegment && !state.firstSegmentReady) {
+          state.firstSegmentReady = true;
+          state.resolveFirstSegment();
+        }
       } catch (error) {
         state.rejectFirstSegment(error instanceof Error ? error : new Error(String(error)));
       }
@@ -249,8 +298,8 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
   try {
     console.log(`[browser-${session.id}] Opening ${session.url}`);
     await page.goto(session.url, { waitUntil: "domcontentloaded", timeout: REQUEST_TIMEOUT_MS });
+    await page.bringToFront().catch(() => undefined);
     const first = await firstRequest;
-    page.off("request", onRequest);
 
     if (first.mode === "m3u8") {
       const requestHeaders = first.request.headers();
@@ -270,7 +319,7 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
       return { session, page, mode: "m3u8", outputPath: relay.outputPath, ffmpeg: relay.ffmpeg };
     }
 
-    await state.firstSegment;
+    await waitForFirstSegment(state.firstSegment);
     console.log(`[browser-${session.id}] Browser-segment relay is ready.`);
     return { session, page, mode: "segments", outputPath: state.outputPath, segmentState: state };
   } catch (error) {
@@ -280,6 +329,21 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
     await page.close().catch(() => undefined);
     cleanupFiles(session.id);
     throw error;
+  }
+};
+
+const waitForFirstSegment = async (firstSegment: Promise<void>) => {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Timed out waiting for the first TS segment after ${REQUEST_TIMEOUT_MS}ms`)),
+      REQUEST_TIMEOUT_MS,
+    );
+  });
+  try {
+    await Promise.race([firstSegment, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 };
 

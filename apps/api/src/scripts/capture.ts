@@ -136,9 +136,24 @@ const outputPrefix = (sessionId: string) => `browser-${sessionId}`;
 const cleanupFiles = (sessionId: string) => {
   const prefix = outputPrefix(sessionId);
   for (const filename of fs.readdirSync(OUTPUT_DIR)) {
-    if (filename === `${prefix}.m3u8` || filename.startsWith(`${prefix}-`)) {
+    if (
+      filename === `${prefix}.m3u8` ||
+      filename.startsWith(`${prefix}-`) ||
+      filename.startsWith(`${prefix}.m3u8.tmp-`)
+    ) {
       fs.rmSync(path.join(OUTPUT_DIR, filename), { force: true });
     }
+  }
+};
+
+const writeAtomically = (filePath: string, contents: string | Buffer, tempPrefix: string) => {
+  const tempPath = path.join(path.dirname(filePath), `${tempPrefix}${randomUUID()}`);
+  try {
+    fs.writeFileSync(tempPath, contents);
+    fs.renameSync(tempPath, filePath);
+  } catch (error) {
+    fs.rmSync(tempPath, { force: true });
+    throw error;
   }
 };
 
@@ -164,7 +179,11 @@ const writeSegmentPlaylist = (sessionId: string, state: SegmentState) => {
     ]),
     "",
   ].join("\n");
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${outputPrefix(sessionId)}.m3u8`), playlist);
+  writeAtomically(
+    path.join(OUTPUT_DIR, `${outputPrefix(sessionId)}.m3u8`),
+    playlist,
+    `${outputPrefix(sessionId)}.m3u8.tmp-`,
+  );
 };
 
 const toFfmpegHeaders = (headers: Record<string, string>) =>
@@ -224,8 +243,8 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
   let m3u8Request: HTTPRequest | undefined;
   let m3u8SelectionTimer: NodeJS.Timeout | undefined;
   let nextSegmentSequence = 0;
-  let firstSegmentRequest: HTTPRequest | undefined;
   const segmentSequences = new Map<HTTPRequest, number>();
+  const segmentUrlSequences = new Map<string, number>();
   let resolveFirstRequest!: (value: { mode: MediaMode; request: HTTPRequest }) => void;
   let rejectFirstRequest!: (error: Error) => void;
   const firstRequest = new Promise<{ mode: MediaMode; request: HTTPRequest }>((resolve, reject) => {
@@ -246,11 +265,16 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
   };
 
   const onRequest = (request: HTTPRequest) => {
-    const url = request.url().toLowerCase();
+    const requestUrl = request.url();
+    const url = requestUrl.toLowerCase();
     if (/\.ts(?:\?|$)/i.test(url)) {
-      if (!firstSegmentRequest) firstSegmentRequest = request;
-      segmentSequences.set(request, nextSegmentSequence);
-      nextSegmentSequence += 1;
+      let sequence = segmentUrlSequences.get(requestUrl);
+      if (sequence === undefined) {
+        sequence = nextSegmentSequence;
+        nextSegmentSequence += 1;
+        segmentUrlSequences.set(requestUrl, sequence);
+      }
+      segmentSequences.set(request, sequence);
       if (!selectedMode) selectMode("segments", request);
     }
     if (!m3u8Request && url.includes("m3u8")) m3u8Request = request;
@@ -262,37 +286,35 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
     const isSuccessful = [200, 206].includes(response.status());
 
     if (/\.ts(?:\?|$)/i.test(responseUrl)) {
-      if (!isSuccessful) {
-        if (response.request() === firstSegmentRequest) {
-          state.rejectFirstSegment(new Error(`First TS segment failed with HTTP ${response.status()}`));
-        }
-        return;
-      }
+      if (!isSuccessful) return;
       if (selectedMode === "m3u8") return;
       try {
         const buffer = await response.buffer();
-        if (buffer[0] !== 0x47) {
-          if (response.request() === firstSegmentRequest) {
-            state.rejectFirstSegment(new Error("First TS segment did not contain an MPEG-TS payload"));
-          }
-          return;
-        }
+        if (buffer[0] !== 0x47) return;
         if (selectedMode !== "segments") return;
-        const sequence = segmentSequences.get(response.request()) ?? nextSegmentSequence++;
+        const sequence = segmentSequences.get(response.request())
+          ?? segmentUrlSequences.get(responseUrl)
+          ?? nextSegmentSequence++;
         const durationMatch = responseUrl.match(/-(\d{5})\.ts(?:\?|$)/i);
         const encodedDuration = durationMatch ? Number(durationMatch[1]) / 1000 : NaN;
         const duration = Number.isFinite(encodedDuration) && encodedDuration >= 1 && encodedDuration <= 30
           ? encodedDuration
           : DEFAULT_SEGMENT_DURATION_SECONDS;
         const filename = `${outputPrefix(session.id)}-${String(sequence).padStart(6, "0")}.ts`;
-        const isFirstSegment = response.request() === firstSegmentRequest;
+        const isFirstSegment = sequence === 0;
         const shouldTrimWindow = state.firstSegmentReady;
-        fs.writeFileSync(path.join(OUTPUT_DIR, filename), buffer);
         const existingIndex = state.segments.findIndex((segment) => segment.sequence === sequence);
         if (existingIndex >= 0) {
           const existing = state.segments.splice(existingIndex, 1)[0];
-          if (existing) fs.rmSync(path.join(OUTPUT_DIR, existing.filename), { force: true });
+          if (existing && existing.filename !== filename) {
+            fs.rmSync(path.join(OUTPUT_DIR, existing.filename), { force: true });
+          }
         }
+        writeAtomically(
+          path.join(OUTPUT_DIR, filename),
+          buffer,
+          `${filename}.tmp-`,
+        );
         state.segments.push({ filename, duration, sequence });
         state.segments.sort((left, right) => left.sequence - right.sequence);
         if (shouldTrimWindow) {

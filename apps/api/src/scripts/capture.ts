@@ -44,7 +44,19 @@ type ActiveStream = {
 const sessions = new Map<string, BrowserSession>();
 const activeStreams = new Map<string, Promise<ActiveStream>>();
 const idleTimers = new Map<string, NodeJS.Timeout>();
+const playbackTimers = new Map<string, NodeJS.Timeout>();
 let browserPromise: Promise<Browser> | undefined;
+
+const PLAY_MEDIA_SCRIPT = `(() => {
+  for (const video of document.querySelectorAll("video")) {
+    video.muted = true;
+    video.autoplay = true;
+    if (video.paused) {
+      const playback = video.play();
+      if (playback) playback.catch(() => undefined);
+    }
+  }
+})()`;
 
 const getBrowser = () => {
   if (!browserPromise) {
@@ -63,6 +75,27 @@ const getBrowser = () => {
     });
   }
   return browserPromise;
+};
+
+const keepPagePlaying = async (page: Page) => {
+  await Promise.all(
+    page.frames().map((frame) => frame.evaluate(PLAY_MEDIA_SCRIPT).catch(() => undefined)),
+  );
+};
+
+const startPlaybackKeepAlive = (sessionId: string, page: Page) => {
+  const streamKey = `browser-${sessionId}`;
+  const existing = playbackTimers.get(streamKey);
+  if (existing) clearInterval(existing);
+  void keepPagePlaying(page);
+  playbackTimers.set(streamKey, setInterval(() => void keepPagePlaying(page), 2_000));
+};
+
+const stopPlaybackKeepAlive = (sessionId: string) => {
+  const streamKey = `browser-${sessionId}`;
+  const timer = playbackTimers.get(streamKey);
+  if (timer) clearInterval(timer);
+  playbackTimers.delete(streamKey);
 };
 
 const validateBrowserUrl = (value: unknown) => {
@@ -299,6 +332,7 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
     console.log(`[browser-${session.id}] Opening ${session.url}`);
     await page.goto(session.url, { waitUntil: "domcontentloaded", timeout: REQUEST_TIMEOUT_MS });
     await page.bringToFront().catch(() => undefined);
+    startPlaybackKeepAlive(session.id, page);
     const first = await firstRequest;
 
     if (first.mode === "m3u8") {
@@ -325,6 +359,7 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
   } catch (error) {
     clearTimeout(requestTimeout);
     if (m3u8SelectionTimer) clearTimeout(m3u8SelectionTimer);
+    stopPlaybackKeepAlive(session.id);
     if (ffmpeg && !ffmpeg.killed) ffmpeg.kill("SIGTERM");
     await page.close().catch(() => undefined);
     cleanupFiles(session.id);
@@ -401,6 +436,7 @@ const stopStream = async (sessionId: string) => {
   if (!stream || activeStreams.get(streamKey) !== streamPromise) return;
   activeStreams.delete(streamKey);
   clearIdleTimer(streamKey);
+  stopPlaybackKeepAlive(sessionId);
   if (stream.ffmpeg && !stream.ffmpeg.killed) stream.ffmpeg.kill("SIGTERM");
   await stream.page.close().catch(() => undefined);
   cleanupFiles(sessionId);
@@ -428,6 +464,7 @@ const ensureStream = async (sessionId: string) => {
         if (activeStreams.get(streamKey) !== streamPromise) return;
         activeStreams.delete(streamKey);
         clearIdleTimer(streamKey);
+        stopPlaybackKeepAlive(sessionId);
         cleanupFiles(sessionId);
         void stream.page.close().catch(() => undefined);
         console.warn(`[${streamKey}] FFmpeg stopped; stream cleaned up.`);

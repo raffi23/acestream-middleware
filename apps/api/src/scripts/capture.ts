@@ -12,6 +12,7 @@ import puppeteer, {
 
 const REQUEST_TIMEOUT_MS = 60_000;
 const IDLE_TIMEOUT_MS = 30_000;
+const M3U8_SELECTION_GRACE_MS = 2_000;
 const INTERNAL_PORT = Number(process.env.BROWSER_INTERNAL_PORT) || 8787;
 const OUTPUT_DIR = path.resolve(
   process.env.BROWSER_OUTPUT_DIR || path.join(process.cwd(), "dist/src/public"),
@@ -132,6 +133,7 @@ const startFfmpeg = (
   const ffmpeg = spawn(FFMPEG_BIN, [
     "-hide_banner", "-loglevel", "warning", "-y",
     "-headers", toFfmpegHeaders(headers),
+    "-analyzeduration", "10M", "-probesize", "50M",
     "-i", m3u8Url,
     "-map", "0", "-c", "copy", "-f", "hls",
     "-hls_time", "4", "-hls_list_size", "6",
@@ -171,6 +173,8 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
   const page = await (await getBrowser()).newPage();
   const state = createSegmentState(session.id);
   let selectedMode: MediaMode | undefined;
+  let m3u8Request: HTTPRequest | undefined;
+  let m3u8SelectionTimer: NodeJS.Timeout | undefined;
   let resolveFirstRequest!: (value: { mode: MediaMode; request: HTTPRequest }) => void;
   let rejectFirstRequest!: (error: Error) => void;
   const firstRequest = new Promise<{ mode: MediaMode; request: HTTPRequest }>((resolve, reject) => {
@@ -182,45 +186,68 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
     REQUEST_TIMEOUT_MS,
   );
 
+  const selectMode = (mode: MediaMode, request: HTTPRequest) => {
+    if (selectedMode) return;
+    selectedMode = mode;
+    if (m3u8SelectionTimer) clearTimeout(m3u8SelectionTimer);
+    clearTimeout(requestTimeout);
+    resolveFirstRequest({ mode, request });
+  };
+
   const onRequest = (request: HTTPRequest) => {
     const url = request.url().toLowerCase();
-    if (!selectedMode && url.includes("m3u8")) {
-      selectedMode = "m3u8";
-      clearTimeout(requestTimeout);
-      resolveFirstRequest({ mode: "m3u8", request });
-    } else if (!selectedMode && /\.ts(?:\?|$)/.test(url)) {
-      selectedMode = "segments";
-      clearTimeout(requestTimeout);
-      resolveFirstRequest({ mode: "segments", request });
-    }
+    if (!m3u8Request && url.includes("m3u8")) m3u8Request = request;
   };
 
   page.on("request", onRequest);
   page.on("response", async (response: HTTPResponse) => {
-    if (selectedMode !== "segments" || !/\.ts(?:\?|$)/i.test(response.url())) return;
-    if (![200, 206].includes(response.status())) return;
+    const responseUrl = response.url();
+    const isSuccessful = [200, 206].includes(response.status());
 
-    try {
-      const buffer = await response.buffer();
-      if (buffer[0] !== 0x47) return;
-      const durationMatch = response.url().match(/-(\d{5})\.ts(?:\?|$)/i);
-      const duration = durationMatch ? Number(durationMatch[1]) / 1000 : 5;
-      const filename = `${outputPrefix(session.id)}-${String(state.nextSequence).padStart(6, "0")}.ts`;
-      state.nextSequence += 1;
-      fs.writeFileSync(path.join(OUTPUT_DIR, filename), buffer);
-      state.segments.push({ filename, duration });
-      while (state.segments.length > 6) {
-        const removed = state.segments.shift();
-        if (removed) fs.rmSync(path.join(OUTPUT_DIR, removed.filename), { force: true });
+    if (/\.ts(?:\?|$)/i.test(responseUrl)) {
+      if (!isSuccessful) return;
+      if (selectedMode === "m3u8") return;
+      try {
+        const buffer = await response.buffer();
+        if (buffer[0] !== 0x47) return;
+        selectMode("segments", response.request());
+        if (selectedMode !== "segments") return;
+        const durationMatch = responseUrl.match(/-(\d{5})\.ts(?:\?|$)/i);
+        const duration = durationMatch ? Number(durationMatch[1]) / 1000 : 5;
+        const filename = `${outputPrefix(session.id)}-${String(state.nextSequence).padStart(6, "0")}.ts`;
+        state.nextSequence += 1;
+        fs.writeFileSync(path.join(OUTPUT_DIR, filename), buffer);
+        state.segments.push({ filename, duration });
+        while (state.segments.length > 6) {
+          const removed = state.segments.shift();
+          if (removed) fs.rmSync(path.join(OUTPUT_DIR, removed.filename), { force: true });
+        }
+        writeSegmentPlaylist(session.id, state);
+        state.resolveFirstSegment();
+      } catch (error) {
+        state.rejectFirstSegment(error instanceof Error ? error : new Error(String(error)));
       }
-      writeSegmentPlaylist(session.id, state);
-      state.resolveFirstSegment();
-    } catch (error) {
-      state.rejectFirstSegment(error instanceof Error ? error : new Error(String(error)));
+      return;
     }
+
+    if (!isSuccessful || !responseUrl.toLowerCase().includes("m3u8") || selectedMode) return;
+    let playlistBody: string;
+    try {
+      playlistBody = await response.text();
+    } catch {
+      return;
+    }
+    if (!playlistBody.includes("#EXTM3U")) return;
+    m3u8Request = response.request();
+    if (m3u8SelectionTimer) return;
+    m3u8SelectionTimer = setTimeout(() => {
+      if (m3u8Request) selectMode("m3u8", m3u8Request);
+    }, M3U8_SELECTION_GRACE_MS);
   });
 
+  let ffmpeg: ChildProcess | undefined;
   try {
+    console.log(`[browser-${session.id}] Opening ${session.url}`);
     await page.goto(session.url, { waitUntil: "domcontentloaded", timeout: REQUEST_TIMEOUT_MS });
     const first = await firstRequest;
     page.off("request", onRequest);
@@ -235,8 +262,10 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
         if (value) headers[headerName] = value;
       }
       if (requestHeaders.cookie || cookieHeader) headers.cookie = requestHeaders.cookie || cookieHeader;
+      console.log(`[browser-${session.id}] Starting FFmpeg for ${first.request.url()}`);
       const relay = startFfmpeg(session.id, first.request.url(), headers);
-      await waitForFile(relay.outputPath);
+      ffmpeg = relay.ffmpeg;
+      await waitForFile(relay.outputPath, relay.ffmpeg);
       console.log(`[browser-${session.id}] M3U8 relay is ready.`);
       return { session, page, mode: "m3u8", outputPath: relay.outputPath, ffmpeg: relay.ffmpeg };
     }
@@ -246,23 +275,52 @@ const captureSource = async (session: BrowserSession): Promise<ActiveStream> => 
     return { session, page, mode: "segments", outputPath: state.outputPath, segmentState: state };
   } catch (error) {
     clearTimeout(requestTimeout);
+    if (m3u8SelectionTimer) clearTimeout(m3u8SelectionTimer);
+    if (ffmpeg && !ffmpeg.killed) ffmpeg.kill("SIGTERM");
     await page.close().catch(() => undefined);
     cleanupFiles(session.id);
     throw error;
   }
 };
 
-const waitForFile = async (filePath: string) => {
+const waitForFile = async (filePath: string, ffmpeg?: ChildProcess) => {
   const deadline = Date.now() + REQUEST_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    try {
-      if (fs.statSync(filePath).size > 0) return;
-    } catch {
-      // The manifest is not ready yet.
+  let processFailure: Error | undefined;
+  let onProcessError: ((error: Error) => void) | undefined;
+  let onProcessClose: ((code: number | null, signal: NodeJS.Signals | null) => void) | undefined;
+  if (ffmpeg) {
+    onProcessError = (error) => {
+      processFailure = error;
+    };
+    onProcessClose = (code, signal) => {
+      processFailure = new Error(
+        `FFmpeg exited before creating the HLS playlist (code=${code}, signal=${signal})`,
+      );
+    };
+    ffmpeg.once("error", onProcessError);
+    ffmpeg.once("close", onProcessClose);
+    if (ffmpeg.exitCode !== null) {
+      processFailure = new Error(
+        `FFmpeg exited before creating the HLS playlist (code=${ffmpeg.exitCode})`,
+      );
     }
-    await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error(`Timed out waiting for ${filePath}`);
+
+  try {
+    while (Date.now() < deadline) {
+      if (processFailure) throw processFailure;
+      try {
+        if (fs.statSync(filePath).size > 0) return;
+      } catch {
+        // The manifest is not ready yet.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    throw new Error(`Timed out waiting for ${filePath}`);
+  } finally {
+    if (ffmpeg && onProcessError) ffmpeg.off("error", onProcessError);
+    if (ffmpeg && onProcessClose) ffmpeg.off("close", onProcessClose);
+  }
 };
 
 const clearIdleTimer = (streamKey: string) => {
@@ -300,7 +358,18 @@ const ensureStream = async (sessionId: string) => {
   const streamPromise = captureSource(session);
   activeStreams.set(streamKey, streamPromise);
   try {
-    return await streamPromise;
+    const stream = await streamPromise;
+    if (stream.ffmpeg) {
+      stream.ffmpeg.once("close", () => {
+        if (activeStreams.get(streamKey) !== streamPromise) return;
+        activeStreams.delete(streamKey);
+        clearIdleTimer(streamKey);
+        cleanupFiles(sessionId);
+        void stream.page.close().catch(() => undefined);
+        console.warn(`[${streamKey}] FFmpeg stopped; stream cleaned up.`);
+      });
+    }
+    return stream;
   } catch (error) {
     if (activeStreams.get(streamKey) === streamPromise) activeStreams.delete(streamKey);
     throw error;
